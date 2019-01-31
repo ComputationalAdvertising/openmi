@@ -1,0 +1,73 @@
+node {
+  name: "x2"
+  id: 0
+  op: "PlaceholderOp"
+}
+node {
+  name: "x3"
+  id: 0
+  op: "PlaceholderOp"
+}
+node {
+  name: "(x2*x2)"
+  id: 0
+  op: "MultiplyOp"
+  inputs: "x2"
+  inputs: "x2"
+}
+node {
+  name: "((x2*x2)+x2)"
+  id: 0
+  op: "AddOp"
+  inputs: "(x2*x2)"
+  inputs: "x2"
+}
+node {
+  name: "z"
+  id: 0
+  op: "AddOp"
+  inputs: "((x2*x2)+x2)"
+  inputs: "x3"
+}
+node {
+  name: "(z*z)"
+  id: 0
+  op: "MultiplyOp"
+  inputs: "z"
+  inputs: "z"
+}
+node {
+  name: "y"
+  id: 0
+  op: "AddOp"
+  inputs: "(z*z)"
+  inputs: "x3"
+}
+node {
+  name: "(x2*x3)"
+  id: 0
+  op: "MultiplyOp"
+  inputs: "x2"
+  inputs: "x3"
+}
+node {
+  name: "((x2*x3)+x3)"
+  id: 0
+  op: "AddOp"
+  inputs: "(x2*x3)"
+  inputs: "x3"
+}
+node {
+  name: "(((x2*x3)+x3)+x2)"
+  id: 0
+  op: "AddOp"
+  inputs: "((x2*x3)+x3)"
+  inputs: "x2"
+}
+node {
+  name: "y1"
+  id: 0
+  op: "AddOp"
+  inputs: "(((x2*x3)+x3)+x2)"
+  inputs: "z"
+}
