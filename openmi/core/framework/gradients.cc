@@ -14,7 +14,7 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
     std::vector<Node*>* out_grads_list = new std::vector<Node*>();
     std::string op_name("OneslikeOp");
     std::string grad_node_name(op_name + "(" + node->Name() + ")");
-    NodePtr grad_node = node_manager->Create(grad_node_name, 0, op_name, 2);
+    NodePtr grad_node = node_manager->Create(grad_node_name, 0, node->Data().Shape(), op_name, NT_UNINITIALIZED, NCT_REVERSE);
     // TODO check new_node
     out_grads_list->push_back(grad_node.get());
     node_to_grads_list_mapper_[node] = out_grads_list;
@@ -81,7 +81,7 @@ Node* Gradients::ReduceSumNodeList(std::vector<Node*>* node_list, NodeManager* n
   for (size_t i = 1; i < node_list->size(); ++i) { 
     Node* curr_node = node_list->at(i);
     std::string node_name("(" + prev_node->Name() + "+" + curr_node->Name() + ")");
-    NodePtr grad_node = node_manager->GetOrCreate(node_name, 0, op_name, 2);  // compute_type=2
+    NodePtr grad_node = node_manager->GetOrCreate(node_name, 0, prev_node->Data().Shape(), op_name, NT_UNINITIALIZED, NCT_REVERSE);
     if (grad_node == nullptr) {
       LOG(ERROR) << "create reverse node failed. name: " << node_name;
       return NULL;

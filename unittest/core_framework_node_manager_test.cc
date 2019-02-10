@@ -24,7 +24,7 @@ NodeManagerPtr ParseNodeList(const char* file) {
   return node_mgr2;
 }
 
-int main(int argc, char** argv) {
+void PbNodeListTest() {
   /////// protobuf parse 
   LOG(INFO) << "\nparse protobuf node_list\n";
   const char* pbfile = "./unittest/conf/pb_node_list.graph";
@@ -37,6 +37,18 @@ int main(int argc, char** argv) {
   std::string y1_key("y1");
   NodePtr y1 = node_mgr2->Get(y1_key);
   PrintNode(y1.get()); 
+}
 
+void LogisticRegressionGraphTest() {
+  const char* pbfile = "./unittest/conf/logistic_regression.graph";
+  NodeManagerPtr node_mgr = ParseNodeList(pbfile);
+  std::string w_name("w");
+  NodePtr w = node_mgr->Get(w_name);
+  PrintNode(w.get());
+}
+
+int main(int argc, char** argv) {
+  //PbNodeListTest();
+  LogisticRegressionGraphTest();
   return 0;
 }

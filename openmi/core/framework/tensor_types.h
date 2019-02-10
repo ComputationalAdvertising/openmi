@@ -20,7 +20,7 @@ struct TTypes {
   typedef Eigen::TensorMap<Eigen::Tensor<T, NDIMS, Eigen::RowMajor, IndexType>, Eigen::Aligned> Tensor;
   typedef Eigen::TensorMap<Eigen::Tensor<const T, NDIMS, Eigen::RowMajor, IndexType>, Eigen::Aligned> ConstTensor; 
 
-  // Scalar tensor which implemented as a rank-0 tesnor of scalar type T 
+  // Scalar tensor which implemented as a rank-0 tensor of scalar type T 
   typedef Eigen::TensorMap<Eigen::TensorFixedSize<T, Eigen::Sizes<>, Eigen::RowMajor, IndexType>, Eigen::Aligned> Scalar;
   typedef Eigen::TensorMap<Eigen::TensorFixedSize<const T, Eigen::Sizes<>, Eigen::RowMajor, IndexType>, Eigen::Aligned> ConstScalar;
 

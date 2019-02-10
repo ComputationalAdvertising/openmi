@@ -23,7 +23,8 @@ void OneslikeOp::Compute(Node* node, std::vector<Node*>& input_nodes) {
 std::vector<Node*>* OneslikeOp::Gradient(Node* node, std::vector<Node*>& output_nodes, NodeManager* node_manager) {
   LOG(WARNING) << "OneslikeOp::Gradient node:" << node->Name();
   std::string n_name(this->Name() + "(" + node->Name() + ")");
-  NodePtr n = node_manager->GetOrCreate(n_name, 0, "ZeroslikeOp", 2);
+  //NodePtr n = node_manager->GetOrCreate(n_name, 0, "ZeroslikeOp", NT_SOURCE, NCT_REVERSE);
+  NodePtr n = node_manager->GetOrCreate(n_name, 0, node->Data().Shape(), "ZeroslikeOp", NT_SOURCE, NCT_REVERSE);
   if (n == nullptr) {
     LOG(ERROR) << "create new node failed. name: " << n_name << ", op_name: " << this->Name();
     return NULL;

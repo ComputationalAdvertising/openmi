@@ -1,0 +1,75 @@
+node {
+  name: "w"
+  id: 0
+  op: "PlaceholderOp"
+  attr {
+    shapes {
+      shape: 3
+      shape: 10
+    }
+    transpose: true
+  }
+}
+node {
+  name: "x"
+  id: 0
+  op: "PlaceholderOp"
+  attr {
+    shapes {
+      shape: 1
+      shape: 10
+    }
+    transpose: false
+  }
+}
+node {
+  name: "b"
+  id: 0
+  op: "PlaceholderOp"
+  attr {
+    shapes {
+      shape: 1
+      shape: 3
+    }
+    transpose: false
+  }
+}
+node {
+  name: "w*x"
+  id: 0
+  op: "MultiplyOp"
+  inputs: "x"
+  inputs: "w"
+  attr {
+    shapes {
+      shape: 1
+      shape: 3
+    }
+  }
+}
+node {
+  name: "z"
+  id: 0
+  op: "AddOp"
+  inputs: "w*x"
+  inputs: "b"
+  attr {
+    shapes {
+      shape: 1
+      shape: 3
+    }
+  }
+}
+node {
+  name: "y"
+  id: 0
+  op: "SigmoidOp"
+  inputs: "z"
+  attr {
+    shapes {
+      shape: 1
+      shape: 3
+    }
+
+  }
+}

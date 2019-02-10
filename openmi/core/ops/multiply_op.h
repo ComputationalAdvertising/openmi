@@ -5,6 +5,13 @@
 
 namespace openmi {
 
+/*!
+ * x1:m*k, x2:k*n; y:m*n
+ * forward: y = x1 * x2
+ * reverse: 
+ *    dx1 = dy * x2^T
+ *    dx2 = x1^T * dy
+ */
 class MultiplyOp : public Op {
 public:
   MultiplyOp();

@@ -6,7 +6,7 @@ set(CMAKE_VERBOSE_MAKEFILE on)
 
 set(BASIC_CXXFLAGS "-std=c++11 -g -O3 -Wall -fPIC")
 set(BASIC_CPPDEFINES "-DNDEBUG -DHAVE_NETINET_IN_H") 
-set(CMAKE_CXX_FLAGS "${BASIC_CXXFLAGS} ${BASIC_CPPDEFINES}")
+set(CMAKE_CXX_FLAGS "${BASIC_CXXFLAGS} ${BASIC_CPPDEFINES} -DEIGEN_USE_THREADS")
 
 include_directories(
   $ENV{DEPS_ENV_HOME}/include  
@@ -14,6 +14,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/../openmi-base
   ${PROJECT_SOURCE_DIR}/../openmi-idl
   ${PROJECT_SOURCE_DIR}/openmi
+  ${PROJECT_SOURCE_DIR}/openmi/core/new
   ${PROJECT_SOURCE_DIR}
 )
 
@@ -36,6 +37,7 @@ set(STATIC_LINKER_FLAGS "-Wl,-Bstatic ${DEPS_WHOLE_ARCHIVE_LIBRARIES} ${DEPS_STA
 set(SHARED_LINKER_FLAGS "-Wl,-Bdynamic ${DEPS_SHARED_LIBRARIES}")
 set(DYNAMIC_LINKER "-Wl,--dynamic-linker=${DEPS_DYNAMIC_LINKER}")
 set(summary_linker_flags "${STATIC_LINKER_FLAGS} ${SHARED_LINKER_FLAGS} ${DYNAMIC_LINKER}")
+
 
 add_subdirectory(openmi)
 add_subdirectory(unittest) 

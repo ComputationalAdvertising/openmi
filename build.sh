@@ -6,7 +6,7 @@ set -o errexit
 SCRIPT_DIR=$(cd $(dirname "${BASH_SOURCE[0]}") && pwd)
 PROJECT_DIR=$SCRIPT_DIR
 
-deps_base_path=$HOME/.openmit_deps
+deps_base_path=$HOME/.openmi_deps
 
 while getopts "c:" opt; do
   case "$opt" in 
@@ -31,8 +31,8 @@ if [[ "$os_name" == "linux" ]]; then
   dynamic_linker="/lib64/ld-lsb-x86-64.so"
 fi
 
-#build_type="Debug"
-build_type="Release"
+build_type="Debug"
+#build_type="Release"
 
 cmake $PROJECT_DIR \
 -DCMAKE_C_COMPILER=`which gcc` \

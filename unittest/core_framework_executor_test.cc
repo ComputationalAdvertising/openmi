@@ -17,7 +17,71 @@ NodeManagerPtr ParseNodeList(const char* file) {
   return node_mgr2;
 }
 
+void exec_simple_calc();
+void exec_sigmoid_calc();
+
 int main(int argc, char** argv) {
+  exec_sigmoid_calc();
+  //exec_simple_calc();
+  return 0;
+}
+
+void exec_sigmoid_calc() {
+  const char* pbfile = "./unittest/conf/logistic_regression.graph";
+  NodeManagerPtr node_mgr = ParseNodeList(pbfile);
+
+  std::vector<Node*> output_nodes;
+  NodePtr y = node_mgr->Get("y");
+  output_nodes.push_back(y.get()); 
+
+  std::vector<Node*> input_nodes;
+  input_nodes.push_back(node_mgr->Get("w").get());
+  input_nodes.push_back(node_mgr->Get("x").get()); 
+  input_nodes.push_back(node_mgr->Get("b").get()); 
+  
+  LOG(INFO) << "total nodes number of forward: " << node_mgr->TotalNodes().size();
+
+  Gradients grad;
+  std::vector<Node*> rt;
+  int result = grad.gradients(output_nodes, input_nodes, rt, node_mgr.get());
+  auto dw = rt[0];
+  auto dx = rt[1];
+  auto db = rt[2];
+  
+  LOG(INFO) << "--------------- dx:\n" << dx->DebugString();
+  LOG(INFO) << "--------------- dx:\n" << dx->Data().TensorType<2>();
+
+  LOG(INFO) << "total nodes number of forward and reverse: " << node_mgr->TotalNodes().size() 
+            << ", reverse node size: " << node_mgr->ReversedNodes().size();; 
+
+  NodePtr w = node_mgr->Get("w");
+  NodePtr x = node_mgr->Get("x");
+  NodePtr b = node_mgr->Get("b");
+  // TODO init source node value 
+  w->Data().TensorType<2>().setConstant(1);
+  x->Data().TensorType<2>().setConstant(3);
+  b->Data().TensorType<2>().setConstant(1);
+
+  // executor 
+  output_nodes.push_back(dw);
+  output_nodes.push_back(dx);
+  output_nodes.push_back(db);
+  Executor* executor = new Executor(output_nodes);
+  LOG(INFO) << "\n============\nexecute ....\n===========\n";
+  executor->Run();
+
+  // result 
+  auto y_val = node_mgr->Get("y")->Data().TensorType<2>();
+  LOG(INFO) << "y_val:\n" << y_val;
+  LOG(INFO) << "dw:\n" << dw->Data().TensorType<2>();
+  
+  LOG(INFO) << "dx:\n" << dx->DebugString();
+  LOG(INFO) << "dx:\n" << dx->Data().TensorType<2>();
+  
+  LOG(INFO) << "db:\n" << db->DebugString();
+}
+
+void exec_simple_calc() {
   const char* pbfile = "./unittest/conf/pb_node_list.graph";
   NodeManagerPtr node_mgr = ParseNodeList(pbfile);
 
@@ -74,5 +138,4 @@ int main(int argc, char** argv) {
   //<< ", tenosr:\n" << node_mgr->Get("(z*z)")->Data().TensorType<2>();
   
   LOG(INFO) << "time: " << timer.Elapsed();
-  return 0;
 }

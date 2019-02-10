@@ -6,6 +6,7 @@
 #include <vector>
 #include "base/logging.h"
 #include "core/framework/op_factory.h"
+#include "core/framework/op_kernel.h"
 
 using namespace openmi;
 
@@ -21,6 +22,8 @@ public:
   virtual ~Op();
 
   virtual void Compute(Node* node, std::vector<Node*>& input_nodes);
+  
+  virtual void Compute(Node* node, std::vector<Node*>& input_nodes, OpKernelContext* ctx);
 
   virtual std::vector<Node*>* Gradient(Node* node, std::vector<Node*>& output_nodes, NodeManager* node_manager);
 
@@ -30,7 +33,6 @@ public:
 
 protected:
   std::string op_name_; 
-
 }; // class Op
 
 typedef std::shared_ptr<Op> OpPtr;

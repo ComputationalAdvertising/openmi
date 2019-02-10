@@ -7,6 +7,7 @@
 #include <vector>
 #include "tensor_types.h"
 #include "base/logging.h"
+#include "openmi/pb/tensor_shape.pb.h"
 
 namespace openmi {
 
@@ -19,9 +20,9 @@ public:
 
   ~TensorShape();
 
-  //TensorShape(const TensorShape& other);
+  TensorShape(const TensorShape& other);
 
-  //TensorShape(const TensorShapeProto& proto);
+  TensorShape(const pb::TensorShapeProto& proto);
   
   bool IsSameSize(const TensorShape& other) const;
   bool operator==(const TensorShape& other) const { return IsSameSize(other); }
@@ -33,19 +34,19 @@ public:
   template <int NDIMS>
   Eigen::DSizes<Eigen::DenseIndex, NDIMS> AsEigenDSizesWithPadding() const;
   
-  void AddDim(uint64_t size);
+  void AddDim(size_t size);
 
-  void InsertDim(int d, uint64_t size);
+  void InsertDim(int d, size_t size);
 
-  inline std::vector<uint64_t>& Shape() { return dims_; }
+  inline std::vector<size_t>& Shape() { return dims_; }
   
   // Return the number of dimensions in the tensor
   inline size_t Dims() const { return dims_.size(); }
 
   // Return the number of elements in dimensions `d`. Eigen::Tensor::dimensions()
-  inline uint64_t DimSize(int d) const { return dims_[d]; } 
+  inline size_t DimSize(int d) const { return dims_[d]; } 
 
-  inline uint64_t NumElements() const { 
+  inline size_t NumElements() const { 
     return num_elements_; 
   }
 
@@ -57,8 +58,8 @@ private:
   void Init(std::string& shapes);
 
 private:
-  std::vector<uint64_t> dims_; 
-  uint64_t num_elements_ = 1L;
+  std::vector<size_t> dims_; 
+  size_t num_elements_ = 1L;
 }; // class TensorShape 
 
 typedef std::shared_ptr<TensorShape> TensorShapePtr; 

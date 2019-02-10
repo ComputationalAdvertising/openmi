@@ -20,6 +20,7 @@ int Executor::Run() {
       continue;
     }
     std::vector<Node*> inputs = node->Inputs();
+    LOG(INFO) << "current node: " << node->DebugString();
     node->GetOp()->Compute(node, inputs);
   }
   return 0;

@@ -9,6 +9,8 @@ OPENMI_REGISTER_LINK_TAG(add_op);
 OPENMI_REGISTER_LINK_TAG(multiply_op);
 OPENMI_REGISTER_LINK_TAG(oneslike_op);
 OPENMI_REGISTER_LINK_TAG(placeholder_op);
+OPENMI_REGISTER_LINK_TAG(sigmoid_op);
+OPENMI_REGISTER_LINK_TAG(sigmoid_grad_op);
 OPENMI_REGISTER_LINK_TAG(zeroslike_op);
 // TODO  ....
 

@@ -22,11 +22,21 @@ public:
 
   NodePtr Create(std::string& name, int id, const std::string& op_name);
 
-  NodePtr Create(std::string& name, int id, const std::string& op_name, int compute_type);
+  NodePtr Create(std::string& name, int id, const std::string& op_name, NodeType type);
+
+  NodePtr Create(std::string& name, int id, const std::string& op_name, NodeType type, NodeComputeType compute_type);
+  
+  NodePtr Create(std::string& name, int id, const TensorShape& shape, const std::string& op_name);
+  
+  NodePtr Create(std::string& name, int id, const TensorShape& shape, const std::string& op_name, NodeType type, NodeComputeType compute_type);
 
   NodePtr GetOrCreate(std::string& name, int id, const std::string& op_name);
 
-  NodePtr GetOrCreate(std::string& name, int id, const std::string& op_name, int compute_type);
+  NodePtr GetOrCreate(std::string& name, int id, const std::string& op_name, NodeType type);
+
+  NodePtr GetOrCreate(std::string& name, int id, const std::string& op_name, NodeType type, NodeComputeType compute_type);
+  
+  NodePtr GetOrCreate(std::string& name, int id, const TensorShape& shape, const std::string& op_name, NodeType type, NodeComputeType compute_type);
 
   // TODO NodePtr SetNodeAttr(const std::string& key, const pb::NodeAttr& attr);
   NodePtr SetNodeAttr(const std::string& key);
