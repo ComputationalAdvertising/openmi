@@ -7,7 +7,7 @@
 #include "base/allocator.h"
 #include "base/logging.h"
 #include "base/refcount.h"
-#include "openmi/pb/tensor_shape.pb.h"
+#include "openmi/idl/proto/tensor_shape.pb.h"
 
 using namespace openmi;
 
@@ -27,15 +27,15 @@ public:
     }
   }
 
-  void* Data() { return data_; }
+  void* data() { return data_; }
 
-  size_t Size() const { return size_; }
+  size_t size() const { return size_; }
 
   bool IsInitialized() const { return is_initialized_; }
 
   template <typename T>
   T* Base() {
-    return reinterpret_cast<T*>(Data());
+    return reinterpret_cast<T*>(data());
   }
 
   bool OwnsMemory() const { return true; }
@@ -57,7 +57,7 @@ public:
   
   Tensor(Allocator* alloc, DataType type, const TensorShape& shape);
 
-  Tensor(pb::TensorShapeProto& shape_proto);
+  Tensor(proto::TensorShapeProto& shape_proto);
 
   ~Tensor();
 
@@ -90,7 +90,7 @@ private:
   void Init();
 
 private:
-  DataType type_ = DT_FLOAT;
+  DataType type_;
   TensorShape shape_;
   std::shared_ptr<Allocator> alloc_;
   std::shared_ptr<TensorBuffer> buf_;

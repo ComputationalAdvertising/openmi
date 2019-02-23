@@ -14,7 +14,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/../openmi-base
   ${PROJECT_SOURCE_DIR}/../openmi-idl
   ${PROJECT_SOURCE_DIR}/openmi
-  ${PROJECT_SOURCE_DIR}/openmi/core/new
+  ${PROJECT_SOURCE_DIR}/openmi/core
   ${PROJECT_SOURCE_DIR}
 )
 

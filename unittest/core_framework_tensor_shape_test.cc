@@ -1,13 +1,14 @@
-#include "core/framework/tensor_shape.h"
-#include <iostream>
+#include "tensor_shape.h"
+#include "base/logging.h"
+using namespace openmi;
 
 int main(int argc, char** argv) {
   std::string shapes("2,7,5,3");
   openmi::TensorShape tensor_shape(shapes);
   std::vector<uint64_t> dims = tensor_shape.Shape();
   for (size_t i = 0; i < dims.size(); ++i) {
-    std::cout << "i: " << i << ", dim: " << dims[i] << std::endl;
+    LOG(INFO) << "i: " << i << ", dim: " << dims[i];
   }
-  std::cout << "num_element: " << tensor_shape.NumElements() << std::endl;
+  LOG(INFO) << "num_element: " << tensor_shape.NumElements();
   return 0;
 }

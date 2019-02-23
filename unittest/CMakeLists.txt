@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.4) 
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/unittest)
 
 set(PREFIX_LINKER_FLAGS "-static -Wl,--whole-archive ${DEPS_WHOLE_ARCHIVE_LIBRARIES} -Wl,--no-whole-archive -Wl,--eh-frame-hdr")
 
@@ -33,7 +33,10 @@ endfunction()
 #add_program("core_framework_gradients_test")
 #add_program("core_framework_node_manager_test")
 #add_program("core_framework_op_test")
-#add_program("core_framework_tensor_buffer_test")
-#add_program("core_framework_tensor_shape_test")
-add_program("core_framework_tensor_test")
 #add_program("core_framework_types_test")
+
+add_program("core_framework_tensor_shape_test")
+add_program("core_framework_tensor_test")
+add_program("core_framework_op_registry_test")
+add_program("core_framework_graph_constructor_test")
+add_program("idl_proto_graph_def_test")

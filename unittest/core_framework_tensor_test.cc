@@ -1,6 +1,6 @@
 #include "base/logging.h"
-#include "core/test/types.h"
-#include "core/test/tensor.h"
+#include "types.h"
+#include "tensor.h"
 
 using namespace openmi;
 
@@ -32,7 +32,7 @@ void tensor_buffer_test() {
     return;
   }
   std::shared_ptr<TensorBuffer> buf(new TensorBuffer(alloc, size));
-  LOG(INFO) << "buf.size:" << buf->Size();
+  LOG(INFO) << "buf.size:" << buf->size();
 }
 
 void matmul_test() {

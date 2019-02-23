@@ -17,8 +17,8 @@ Tensor::Tensor(Allocator* alloc, DataType type, const TensorShape& shape)
   Init();
 }
 
-Tensor::Tensor(pb::TensorShapeProto& shape_proto) 
-  : shape_(shape_proto) {
+Tensor::Tensor(proto::TensorShapeProto& shape_proto) 
+  : type_(DT_FLOAT), shape_(shape_proto) {
   Init();
 }
 

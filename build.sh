@@ -20,8 +20,8 @@ export DEPS_ENV_HOME=$deps_base_path
 mkdir -p $PROJECT_DIR/build || echo "$PROJECT_DIR/build exists!"
 cd $PROJECT_DIR/build
 
-dep_whole_archive_libraries="-lopenmit_core"
-dep_static_libraries="-lopenmi_idl -lopenmi_base \
+dep_whole_archive_libraries="-lopenmi_core -lopenmi_base"
+dep_static_libraries="-lopenmi_idl \
 -lprotobuf -lprotoc -lprotobuf-lite -lgmock -lgtest -lgtest_main"
 dep_dynamic_libraries="-lpthread -lgflags"
 

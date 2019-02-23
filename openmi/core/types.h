@@ -1,5 +1,8 @@
-#include "openmi/pb/types.pb.h"
-using namespace openmi::pb;
+#ifndef OPENMI_CORE_LIB_TYPES_H_
+#define OPENMI_CORE_LIB_TYPES_H_ 
+
+#include "openmi/idl/proto/types.pb.h"
+using namespace openmi::proto;
 
 namespace openmi {
 
@@ -34,16 +37,16 @@ MATCH_TYPE_AND_ENUM(bool, DT_BOOL);
 
 #define DIRECT_ARG(...) __VA_ARGS__
 
-#define OPENMI_TYPE_CASE(TYPE, STMTS)                            \
-    case ::openmi::DataTypeToEnum<TYPE>::value: {                \
-        printf("type: %s, stmts: %s\n", PRINT(TYPE), PRINT(STMTS)); \
-        typedef TYPE T;                                       \
-        STMTS;                                                \
-        break;                                                \
+#define OPENMI_TYPE_CASE(TYPE, STMTS)                                 \
+    case ::openmi::DataTypeToEnum<TYPE>::value: {                     \
+        printf("type: %s, stmts: %s\n", PRINT(TYPE), PRINT(STMTS));   \
+        typedef TYPE T;                                               \
+        STMTS;                                                        \
+        break;                                                        \
     }
 
-#define OPENMI_TYPE_CASES(TYPE_ENUM, STMTS)                          \
-    switch (TYPE_ENUM) {                                          \
+#define OPENMI_TYPE_CASES(TYPE_ENUM, STMTS)                 \
+    switch (TYPE_ENUM) {                                    \
         OPENMI_TYPE_CASE(int8_t, DIRECT_ARG(STMTS))         \
         OPENMI_TYPE_CASE(int16_t, DIRECT_ARG(STMTS))        \
         OPENMI_TYPE_CASE(int32_t, DIRECT_ARG(STMTS))        \
@@ -57,9 +60,10 @@ MATCH_TYPE_AND_ENUM(bool, DT_BOOL);
     //default: OPENMI_CHECK(false) << "type error"; 
 
 inline size_t SizeOfType(DataType type) {
-  size_t ret;
+  size_t ret = 0;
   OPENMI_TYPE_CASES(type, ret = sizeof(T));
   return ret;
 }
 
 } // namespace openmi 
+#endif // OPENMI_CORE_LIB_TYPES_H_
