@@ -7,6 +7,7 @@
 #include "base/allocator.h"
 #include "base/logging.h"
 #include "base/refcount.h"
+#include "openmi/idl/proto/tensor.pb.h"
 #include "openmi/idl/proto/tensor_shape.pb.h"
 
 using namespace openmi;
@@ -57,13 +58,23 @@ public:
   
   Tensor(Allocator* alloc, DataType type, const TensorShape& shape);
 
-  Tensor(proto::TensorShapeProto& shape_proto);
+  Tensor(proto::TensorProto& tensor);
+
+  Tensor(proto::TensorShapeProto& shape_proto, DataType type = DT_FLOAT);
 
   ~Tensor();
 
-  bool IsInitialized() const { return is_initialized_; }
+  bool IsInitialized() const { 
+    return is_initialized_; 
+  }
 
-  inline TensorShape& Shape() { 
+  const DataType type() const { return type_; }
+
+  void set_shape(TensorShape& shape) {
+    shape_ = shape;
+  } 
+
+  inline TensorShape& shape() { 
     return shape_; 
   }
 
@@ -83,10 +94,40 @@ public:
     return tensor<T, 2>();
   }
 
+  template <typename T>
+  typename TTypes<T>::Flat flat() {
+    std::vector<uint64_t> new_sizes;
+    new_sizes.push_back(shape().NumElements());
+    return shaped<T, 1>(new_sizes);
+  }
+
+  template <typename T, size_t NDIMS>
+  typename TTypes<T, NDIMS>::Tensor shaped(std::vector<uint64_t> new_sizes) {
+    Eigen::array<Eigen::DenseIndex, NDIMS> dims;
+    for (auto i = 0; i < new_sizes.size(); ++i) {
+      dims[i] = new_sizes[i];
+    }
+    return typename TTypes<T, NDIMS>::Tensor(Base<T>(), dims);
+  }
+
+  template <typename T>
+  typename MTypes<T>::MatrixRef ToEigenMatrix() {
+    auto m = matrix<T>();
+    return Eigen::Map<typename MTypes<T>::Matrix>(
+      m.data(), m.dimension(0), m.dimension(1));
+  }
+
+  // RowMajor
+  template <typename T>
+  typename MTypes<T>::MatrixRef ToEigenVector() {
+    auto v = vec<T>();
+    return Eigen::Map<typename MTypes<T>::Matrix>(
+      v.data(), 1, v.dimension(0));
+  }
   //template <typename T, size_t NDIMS> 
   //typename TTypes<T, NDIMS>::Tensor Shaped();
 
-private:
+//private:
   void Init();
 
 private:
@@ -94,11 +135,12 @@ private:
   TensorShape shape_;
   std::shared_ptr<Allocator> alloc_;
   std::shared_ptr<TensorBuffer> buf_;
-  bool is_initialized_;
+  bool is_initialized_ = false;
 }; // class Tensor
 
 template <typename T, size_t NDIMS>
 typename TTypes<T, NDIMS>::Tensor Tensor::tensor() {
+  CHECK(is_initialized_ == true) << "tensor has been not initialized.";
   return typename TTypes<T, NDIMS>::Tensor(
     Base<T>(), shape_.AsEigenDSizes<NDIMS>());
 }

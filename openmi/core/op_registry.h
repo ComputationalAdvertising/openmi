@@ -8,24 +8,30 @@
 #include <string>
 #include <unordered_map>
 
-#include "openmi/idl/proto/node_def.pb.h"
 #include "base/register.h"
 #include "base/singleton.h"
+#include "graph.h"
+#include "types.h"
 
 using namespace openmi;
 
 namespace openmi {
 
+class OpKernel;
+
 struct OpRegistrationEntry {
-  OpRegistrationEntry(): device("CPU") {}
+  OpRegistrationEntry() 
+    : device("CPU"), allow_type(DT_FLOAT) {}
   std::string device;
+  DataType allow_type;
   std::function<OpKernel*()> body;
 };
 
 // multi-device op kernel
 class OpRegistrationData {
 public:
-  OpRegistrationEntry* FindEntry(const std::string device = "CPU");
+  OpRegistrationEntry* FindEntry(
+    const std::string device, DataType type);
 
   std::set<OpRegistrationEntry*> entrys;
   // TODO extra info
@@ -36,7 +42,7 @@ public:
   void RegisterOp(std::string name, OpRegistrationEntry* entry);
   
   // TODO void --> status
-  Status LookUp(const proto::NodeDef& node_def, OpKernel** op_kernel);
+  Status LookUp(Node& node, OpKernel** op_kernel);
 
 private:
   std::unordered_map<std::string, OpRegistrationData> op_kernel_mapper_; 
@@ -51,9 +57,14 @@ public:
   
   OpRegistryHelper& SetBody(const std::function<OpKernel*()>& body);
   OpRegistryHelper& Device(std::string device);
+  OpRegistryHelper& TypeConstraint(DataType type);
+
+  template <typename T>
+  OpRegistryHelper& TypeConstraint();
   
   std::string Name() const { return name_; };
   OpRegistrationEntry* Entry() const { return entry_; }
+
 private:
   std::string name_;
   OpRegistrationEntry* entry_;
@@ -62,6 +73,11 @@ private:
 template <typename T>
 OpRegistryHelper& OpRegistryHelper::op_kernel() {
   return SetBody([]() -> OpKernel* { return new T; });
+}
+
+template <typename T>
+OpRegistryHelper& OpRegistryHelper::TypeConstraint() {
+  return TypeConstraint(DataTypeToEnum<T>::v());
 }
 
 class OpRegistryReceiver {
@@ -75,9 +91,12 @@ public:
 
 #define OPENMI_REGISTER_SINGLE_ARGS(...) __VA_ARGS__
 
-#define OPENMI_REGISTER_KERNEL_UNIQ(name, ctr) \
-  static ::openmi::OpRegistryReceiver register_op_##ctr_##name \
+#define OPENMI_REGISTER_KERNEL_UNIQ_HELPER(name, ctr) \
+  static ::openmi::OpRegistryReceiver register_op_## ctr ## _ ##name \
   __attribute__((unused)) = ::openmi::OpRegistryHelper(#name)
+
+#define OPENMI_REGISTER_KERNEL_UNIQ(name, ctr) \
+  OPENMI_REGISTER_KERNEL_UNIQ_HELPER(name, ctr)
 
 #define OPENMI_REGISTER_OP_KERNEL(name, ...) \
   OPENMI_REGISTER_KERNEL_UNIQ(name, __COUNTER__).op_kernel<__VA_ARGS__>()

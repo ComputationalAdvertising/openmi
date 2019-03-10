@@ -4,24 +4,20 @@
 
 namespace openmi {
 
-TensorShape::TensorShape(size_t dims) {
-  dims_.resize(dims, 1L);
-  num_elements_ = dims * 1L;
+TensorShape::TensorShape() {
 }
 
 TensorShape::TensorShape(const char* _shapes) {
-  LOG(INFO) << "_shapes";
   std::string shapes(_shapes);
   Init(shapes);
 }
 
 TensorShape::TensorShape(std::string& shapes) {
-  LOG(INFO) << "TensorShape std::string shapes";
   Init(shapes);
 }
 
-TensorShape::TensorShape(const TensorShape& other): dims_(other.dims_), num_elements_(other.num_elements_) {
-  LOG(INFO) << "copy TensorShape& other";
+TensorShape::TensorShape(const TensorShape& other) 
+  : dims_(other.dims_), num_elements_(other.num_elements_) {
 }
 
 TensorShape::TensorShape(const proto::TensorShapeProto& shape_proto) {
@@ -50,8 +46,11 @@ void TensorShape::AddDim(uint64_t size) {
   num_elements_ *= size;
 }
 
-void TensorShape::InsertDim(int d, uint64_t size) {
-  dims_.insert(dims_.begin() + d, size);
+void TensorShape::SetDim(int d, uint64_t size) {
+  CHECK(d < dims_.size()) 
+    << d << " extends out of range. dims_:" << dims_.size();
+  num_elements_ /= dims_[d];
+  dims_[d] = size;
   num_elements_ *= size;
 }
 

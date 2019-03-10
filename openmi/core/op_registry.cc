@@ -3,9 +3,12 @@
 
 namespace openmi {
 
-OpRegistrationEntry* OpRegistrationData::FindEntry(const std::string device) {
+OpRegistrationEntry* OpRegistrationData::FindEntry(const std::string device, DataType type) {
   for (auto&& entry: entrys) {
     if (entry->device != device) {
+      continue;
+    }
+    if (entry->allow_type != type) {
       continue;
     }
     return entry;
@@ -14,10 +17,10 @@ OpRegistrationEntry* OpRegistrationData::FindEntry(const std::string device) {
 }
 
 void OpRegistry::RegisterOp(std::string name, OpRegistrationEntry* entry) {
-  //LOG(INFO) << "OpRegistry::RegisterOp name: " << name;
+  LOG(INFO) << "OpRegistry::RegisterOp name: " << name;
   auto iter = op_kernel_mapper_.find(name);
   if (iter != op_kernel_mapper_.end()) {
-    CHECK(iter->second.FindEntry(entry->device) == nullptr) 
+    CHECK(iter->second.FindEntry(entry->device, entry->allow_type) == nullptr) 
       << "<op_name, device> has already registry. op_name:" 
       << name << ", device:" << entry->device; 
     iter->second.entrys.insert(entry);
@@ -28,21 +31,27 @@ void OpRegistry::RegisterOp(std::string name, OpRegistrationEntry* entry) {
   }
 }
 
-Status OpRegistry::LookUp(const proto::NodeDef& node_def, OpKernel** op_kernel) {
-  auto iter = op_kernel_mapper_.find(node_def.op());
+Status OpRegistry::LookUp(Node& node, OpKernel** op_kernel) {
+  auto iter = op_kernel_mapper_.find(node.def().op());
   CHECK(iter != op_kernel_mapper_.end())
-    << node_def.op() 
+    << node.def().op() 
     << " not in op registry. please check whether 'op' field in node_def.proto is or not correct.";
-
-  LOG(INFO) << "[TMP] op_name exists. " << node_def.op();
   
-  OpRegistrationEntry* entry = iter->second.FindEntry(node_def.device());
+  DataType type = DT_FLOAT;
+  auto it = node.attrs().find("type");
+  if (it != node.attrs().end() 
+      && it->second.attr_type == ::openmi::AttrValue::kType) {
+    type = it->second.type;
+  }
+  OpRegistrationEntry* entry = iter->second.FindEntry(node.def().device(), type);
+  /*
   if (entry == nullptr) {
     entry = iter->second.FindEntry();
   }
+  */
   CHECK(entry != nullptr)
     << "device of op not exist. op_name:" 
-    << node_def.op() << ", device:" << node_def.device();
+    << node.def().op() << ", device:" << node.def().device();
 
   *op_kernel = entry->body();
 
@@ -62,6 +71,15 @@ OpRegistryHelper& OpRegistryHelper::Device(std::string device) {
   return *this;
 }
 
-OPENMI_REGISTER_LINK_TAG(UnaryOp);
+OpRegistryHelper& OpRegistryHelper::TypeConstraint(DataType type) {
+  entry_->allow_type = type;
+  return *this;
+}
+
+OPENMI_REGISTER_LINK_TAG(Add);
+OPENMI_REGISTER_LINK_TAG(MatMul);
+OPENMI_REGISTER_LINK_TAG(Sigmoid);
+OPENMI_REGISTER_LINK_TAG(UnaryElementWiseOp);
+OPENMI_REGISTER_LINK_TAG(Variable);
 
 } // namespace openmi

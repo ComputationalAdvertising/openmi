@@ -27,24 +27,21 @@ private:
 
 Status GraphConstructor::Construct(proto::GraphDef* gdef, Graph* g, 
                                    std::vector<std::pair<Node*, int>>* return_tensors) {
-  LOG(WARN) << "2";
   GraphConstructor gc(gdef, g, return_tensors);
   return gc.TryImport();
 }
 
 Status GraphConstructor::TryImport() {
-  LOG(WARN) << "3";
+  LOG(INFO) << "GraphConstructor::TryImport begin";
   g_->set_name(*(gdef_->mutable_name()));
   g_->set_version(gdef_->version());
-  LOG(WARN) << "4";
   Status s;
   for (int i = 0; i < gdef_->node().size(); ++i) {
     NodeInfo ninfo(gdef_->node(i), i);
     g_->AddNode(ninfo, &s);
   }
 
-  LOG(INFO) << " ----------------- middle ----";
-
+  LOG(INFO) << "GraphConstructor::TryImport middle";
   // parse node dependencies 
   for (auto& node_def: gdef_->node()) {
     for (int i = 0; i < node_def.input().size(); ++i) {
@@ -54,11 +51,11 @@ Status GraphConstructor::TryImport() {
       g_->AddInput(node_def.name(), n, i);
     }
   }
+  LOG(INFO) << "GraphConstructor::TryImport done";
   return Status::OK();
 }
 
 extern Status ConvertGraphDefToGraph(GraphDef* gdef, Graph* g) {
-  LOG(WARN) << "1";
   return GraphConstructor::Construct(gdef, g, nullptr);
 }
 

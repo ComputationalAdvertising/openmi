@@ -17,8 +17,14 @@ Tensor::Tensor(Allocator* alloc, DataType type, const TensorShape& shape)
   Init();
 }
 
-Tensor::Tensor(proto::TensorShapeProto& shape_proto) 
-  : type_(DT_FLOAT), shape_(shape_proto) {
+Tensor::Tensor(proto::TensorProto& tensor)
+  : shape_(tensor.tensor_shape()), type_(tensor.dtype()) {
+  Init();
+  // TODO copy tensor content to this
+}
+
+Tensor::Tensor(proto::TensorShapeProto& shape_proto, DataType type) 
+  : shape_(shape_proto), type_(DT_FLOAT) {
   Init();
 }
 
@@ -27,7 +33,7 @@ void Tensor::Init() {
     alloc_.reset(cpu_allocator());
   }
   assert(alloc_ != nullptr);
-  size_t size = Shape().NumElements() * SizeOfType(type_);
+  size_t size = shape().NumElements() * SizeOfType(type_);
   buf_.reset(new TensorBuffer(alloc_.get(), size));
   if (buf_->IsInitialized()) {
     is_initialized_ = true;

@@ -2,18 +2,24 @@
 
 namespace openmi {
 
-OpKernel::OpKernel(): context_(nullptr), initialized_(false) {}
+OpKernel::OpKernel() {}
 
 OpKernel::~OpKernel() {}
 
 void OpKernel::Initialize(OpKernelConstruction* context) {
-  context_ = context;
-  initialized_ = true;
+  // TODO used for check params before compute
 }
 
 OpKernelContext::OpKernelContext(Params* params): params_(params) {}
 
 OpKernelContext::~OpKernelContext() {}
+
+
+template <>
+const Eigen::ThreadPoolDevice& OpKernelContext::eigen_device() const {
+  CHECK(params_->device != nullptr) << "OpKernelContext device is null";
+  return params_->device->eigen_cpu_device();
+}
 
 /*
 Status OpKernelContext::Allocate(TensorShape& shape, DataType type) {

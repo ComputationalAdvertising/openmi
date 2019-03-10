@@ -1,16 +1,16 @@
-#ifndef OPENMI_CORE_OPS_UNARY_OP_H_ 
-#define OPENMI_CORE_OPS_UNARY_OP_H_ 
+#ifndef OPENMI_CORE_KERNELS_ADD_OP_H_
+#define OPENMI_CORE_KERNELS_ADD_OP_H_  
 
 #include "op_kernel.h"
 
 namespace openmi {
 
-class UnaryOp : public OpKernel {
+class AddOp : public OpKernel {
 public:
   void Initialize(OpKernelConstruction* context) override;
 
   void Compute(OpKernelContext* context) override;
-}; // class UnaryOp
+}; // class AddOp
 
 } // namespace openmi
-#endif // OPENMI_CORE_OPS_UNARY_OP_H_
+#endif // OPENMI_CORE_KERNELS_ADD_OP_H_

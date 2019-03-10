@@ -38,9 +38,10 @@ int main(int argc, char** argv) {
     return -1;
   }
   
-  LOG(INFO) << "graph_demo.proto:\n" << gdef.DebugString();
+  LOG(INFO) << "graph_demo.proto gdef.node[0]:\n" << gdef.node(0).attr().size();
 
   auto attr = const_cast<proto::NodeDef&>(gdef.node(0)).mutable_attr();
+
   attr->insert({"test", *attr_s("test.value")});
   attr->insert({"type", *attr_type(DT_FLOAT)});
   std::vector<int> dims;

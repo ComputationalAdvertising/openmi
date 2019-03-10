@@ -3,18 +3,21 @@
 
 #include <string>
 #include <vector>
+#include "attr_value.h"
+#include "device.h"
 #include "status.h"
+#include "session_state.h"
+#include "openmi/idl/proto/node_def.pb.h"
+#include "openmi/idl/proto/types.pb.h"
+#include "base/logging.h"
+
+using namespace openmi;
+using namespace openmi::proto;
 
 namespace openmi {
 
 class OpKernelConstruction;
 class OpKernelContext;
-
-enum DataType {
-  DT_UNVALID,
-  DT_FLOAT,
-  DT_INT
-}; 
 
 class OpKernel {
 public:
@@ -27,41 +30,66 @@ public:
   // may be called concurrently. 
   // "context " is guaranteed to be alive until Compute() returns. 
   virtual void Compute(OpKernelContext* ctx) = 0;
-
-protected:
-  //std::unique_ptr<NodeDef> node_def_;
-  OpKernelConstruction* context_;
-  bool initialized_;
 }; // class OpKernel
    
 // TODO OpKernelAsync  
 
 class OpKernelConstruction {
 public:
-  OpKernelConstruction(std::string name) : name_(name) {}
+  OpKernelConstruction(
+    const std::string& name,
+    std::unordered_map<std::string, AttrValue>& attr)
+  : name_(name), attr_(attr) {}
 
-  std::string name_;
-  std::vector<DataType> input_types_;
-  std::vector<DataType> output_types_;
+  std::unordered_map<std::string, AttrValue>& attrs() { return attr_; }
+
+  std::string name() { return name_; }
+
+private:
+  std::string name_; // node.name 
+  std::unordered_map<std::string, AttrValue> attr_;
 }; // class OpKernelConstruction
 
 class OpKernelContext {
 public:
   struct Params {
-    uint64_t step_id = 0;
-
+    //uint64_t step_id = 0;
+    Device* device = nullptr;
+    SessionState* session_state = nullptr;
     OpKernel* op_kernel = nullptr;
+    proto::NodeDef* node_def = nullptr;
     // The inputs for this op 
-    std::vector<std::string> input_name;      // node_def.name 
-    
+    std::vector<std::string> input_name;      // node_def.name
     // The outputs for this op 
     std::vector<std::string> output_name;
-
   };
 
   explicit OpKernelContext(Params* params);
 
   ~OpKernelContext();
+
+  OpKernel& op_kernel() { return *params_->op_kernel; }
+
+  std::vector<std::string>& inputs() { return params_->input_name; }
+
+  std::vector<std::string>& outputs() { return params_->output_name; }
+
+  SessionState* session_state() { return params_->session_state; } 
+
+  proto::NodeDef& node_def() { return *(params_->node_def); }
+
+  std::string name() { return node_def().name(); }
+
+  Tensor& input(int index) { 
+    return params_->session_state->GetTensor(params_->input_name[index]);
+  }
+
+  Tensor& output() { 
+    return params_->session_state->GetTensor(params_->node_def->name());
+  }
+
+  template <typename EigenDeviceType>
+  const EigenDeviceType& eigen_device() const;
 
 private:
   Params* params_;

@@ -16,7 +16,7 @@ public:
   // "4,5,6,7"
   TensorShape(std::string& shapes);
   TensorShape(const char* shapes);
-  TensorShape(size_t dims = 1); 
+  TensorShape(); 
 
   ~TensorShape();
 
@@ -36,7 +36,7 @@ public:
   
   void AddDim(uint64_t size);
 
-  void InsertDim(int d, uint64_t size);
+  void SetDim(int d, uint64_t size);
 
   std::vector<uint64_t>& Shape() { return dims_; }
   

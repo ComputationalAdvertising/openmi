@@ -2,6 +2,7 @@
 #include "base/logging.h"
 
 int main(int argc, char** argv) {
+  /*
   OpKernel* op_kernel;
   proto::NodeDef node_def;
   node_def.set_op("UnaryOp");
@@ -16,5 +17,6 @@ int main(int argc, char** argv) {
   OpKernelContext::Params* params = new OpKernelContext::Params();
   OpKernelContext* context = new OpKernelContext(params);
   op_kernel->Compute(context);
+  */
   return 0;
 }

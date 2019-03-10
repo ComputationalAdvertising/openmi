@@ -1,4 +1,4 @@
-#include "openmi/pb/types.pb.h"
+#include "openmi/idl/proto/types.pb.h"
 #include <string>
 #include "base/logging.h"
 #include <stdio.h>
@@ -6,7 +6,7 @@
 #include "types.h"
 
 using namespace openmi;
-using namespace openmi::pb;
+using namespace openmi::proto;
 using namespace std;
 
 template <typename T>
@@ -37,10 +37,10 @@ int main() {
   printf("size of DF_DOUBLE: %d\n", SizeOfType(DT_DOUBLE));
   printf("size of DF_INT8_T: %d\n", SizeOfType(DT_INT8));
 
-  printf("size of float: %d\n", sizeof(typename AccumulatorType<float>::type));
-  printf("size of double: %d\n", sizeof(typename AccumulatorType<double>::type));
+  printf("size of float: %f\n", sizeof(typename AccumulatorType<float>::type));
+  printf("size of double: %f\n", sizeof(typename AccumulatorType<double>::type));
 
-  printf("size of float: %d\n", sizeof(typename EnumToDataType<DT_FLOAT>::T));
-  printf("size of double: %d\n", sizeof(EnumToDataType<DT_DOUBLE>::T));
+  printf("size of float: %f\n", sizeof(typename EnumToDataType<DT_FLOAT>::T));
+  printf("size of double: %f\n", sizeof(EnumToDataType<DT_DOUBLE>::T));
   return 0;
 }
