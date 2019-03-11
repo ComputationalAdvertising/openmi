@@ -74,9 +74,7 @@ public:
     shape_ = shape;
   } 
 
-  inline TensorShape& shape() { 
-    return shape_; 
-  }
+  TensorShape& shape() { return shape_; }
 
   template <typename T>
   T* Base() { return buf_->Base<T>(); }
@@ -102,7 +100,8 @@ public:
   }
 
   template <typename T, size_t NDIMS>
-  typename TTypes<T, NDIMS>::Tensor shaped(std::vector<uint64_t> new_sizes) {
+  typename TTypes<T, NDIMS>::Tensor shaped(
+    std::vector<uint64_t> new_sizes) {
     Eigen::array<Eigen::DenseIndex, NDIMS> dims;
     for (auto i = 0; i < new_sizes.size(); ++i) {
       dims[i] = new_sizes[i];
@@ -124,11 +123,21 @@ public:
     return Eigen::Map<typename MTypes<T>::Matrix>(
       v.data(), 1, v.dimension(0));
   }
-  //template <typename T, size_t NDIMS> 
-  //typename TTypes<T, NDIMS>::Tensor Shaped();
 
 //private:
-  void Init();
+  void Init(); 
+
+  void AllocateTensor(TensorShape& shape) {
+    set_shape(shape);
+    if (alloc_ == nullptr) {
+      alloc_.reset(cpu_allocator());
+    }
+    size_t size = shape_.NumElements() * SizeOfType(type_);
+    buf_.reset(new TensorBuffer(alloc_.get(), size));
+    if (buf_->IsInitialized()) {
+      is_initialized_ = true;
+    }
+  }
 
 private:
   DataType type_;

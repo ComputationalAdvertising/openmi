@@ -16,6 +16,12 @@ TensorShape::TensorShape(std::string& shapes) {
   Init(shapes);
 }
 
+TensorShape::TensorShape(std::vector<uint64_t>& dims) : dims_(dims) {
+  for (size_t i = 0; i < dims_.size(); ++i) {
+    num_elements_ *= dims_[i];
+  }
+}
+
 TensorShape::TensorShape(const TensorShape& other) 
   : dims_(other.dims_), num_elements_(other.num_elements_) {
 }

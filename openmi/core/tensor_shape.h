@@ -20,6 +20,8 @@ public:
 
   ~TensorShape();
 
+  TensorShape(std::vector<uint64_t>& dims);
+
   TensorShape(const TensorShape& other);
 
   TensorShape(const proto::TensorShapeProto& proto);

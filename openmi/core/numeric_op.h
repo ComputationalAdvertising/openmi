@@ -25,14 +25,12 @@ public:
     Tensor& input = context->input(0);
     Tensor& output = context->output();
     if (!output.IsInitialized()) {
-      output.set_shape(input.shape());
-      output.Init();
+      output.AllocateTensor(input.shape());
     }
 
     if (input.shape() != output.shape()) {
-      // TODO tensor.clear and reallocate memory 
-      output.set_shape(input.shape());
-      output.Init();
+      // TODO tensor.clear and reallocate memory  
+      output.AllocateTensor(input.shape());
     }
 
     // TODO 重写判断条件
