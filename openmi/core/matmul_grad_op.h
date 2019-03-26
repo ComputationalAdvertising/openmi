@@ -20,11 +20,6 @@ public:
   void Compute(OpKernelContext* context) override;
 }; // class OneslikeGradOp
 
-class SigmoidGradOp : public OpKernel {
-public:
-  void Compute(OpKernelContext* context) override;
-}; // class SigmoidGradOp
-
 class AddGradOp : public OpKernel {
 public:
   void Compute(OpKernelContext* context) override;

@@ -77,15 +77,17 @@ OpRegistryHelper& OpRegistryHelper::TypeConstraint(DataType type) {
   return *this;
 }
 
-OPENMI_REGISTER_LINK_TAG(cwise_ops_binary);
-OPENMI_REGISTER_LINK_TAG(cwise_ops_unary);
 OPENMI_REGISTER_LINK_TAG(binary_add_op);
 OPENMI_REGISTER_LINK_TAG(binary_sub_op);
 OPENMI_REGISTER_LINK_TAG(binary_mul_op);
 OPENMI_REGISTER_LINK_TAG(binary_div_op);
+OPENMI_REGISTER_LINK_TAG(binary_sigmoid_grad_op);
+OPENMI_REGISTER_LINK_TAG(cwise_ops_binary);
+OPENMI_REGISTER_LINK_TAG(cwise_ops_unary);
+OPENMI_REGISTER_LINK_TAG(oneslike_op);
+OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
 OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
 OPENMI_REGISTER_LINK_TAG(MatMul);
-//OPENMI_REGISTER_LINK_TAG(Sigmoid);
 OPENMI_REGISTER_LINK_TAG(Variable);
 
 } // namespace openmi

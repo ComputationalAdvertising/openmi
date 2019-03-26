@@ -99,6 +99,6 @@ public:
   OPENMI_REGISTER_KERNEL_UNIQ_HELPER(name, ctr)
 
 #define OPENMI_REGISTER_OP_KERNEL(name, ...) \
-  OPENMI_REGISTER_KERNEL_UNIQ(name, __COUNTER__).op_kernel<__VA_ARGS__>()
+  OPENMI_REGISTER_KERNEL_UNIQ(name, __COUNTER__).op_kernel<__VA_ARGS__>() 
 
 #endif // OPENMI_CORE_FRAMEWORK_OP_REGESTRY_H_

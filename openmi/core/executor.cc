@@ -113,7 +113,6 @@ Executor::~Executor() {
 }
 
 Status Executor::Run() {
-  //for (auto& node: g_.forward_topo_nodes()) {
   for (auto& node: g_.global_topo_nodes()) {
     LOG(INFO) << "node.name: " << node->def().name();
     OpKernelConstruction okc(node->def().name(), node->attrs());
@@ -133,6 +132,7 @@ Status Executor::Run() {
     params.output_name = node->outputs();
     params.related_node_name = node->node_info().related_node_name;
 
+    LOG(INFO) << "node.name: " << node->def().name() << ", op: " << node->def().op();
     OpKernelContext* ctx = new OpKernelContext(&params);
     node->op()->Compute(ctx);
 

@@ -1,6 +1,5 @@
 #include "graph.h"
 #include "op_registry.h"
-#include "gradient_op_registry.h"
 using namespace openmi;
 
 namespace openmi {
@@ -14,11 +13,7 @@ void Node::Initialize(NodeInfo& ninfo) {
     this->attr_[attr.first].FromProto(attr.second);
   }
   OpKernel* op_kernel;
-  if (ninfo_.node_scope == NS_REVERSE) {
-    GradientOpRegistry::Instance().LookUp(*this, &op_kernel);
-  } else {
-    OpRegistry::Instance().LookUp(*this, &op_kernel);
-  }
+  OpRegistry::Instance().LookUp(*this, &op_kernel);
   CHECK(op_kernel != nullptr) 
     << "lookup op from registry failed. op_name:" << ninfo_.node_def.op();
   op_.reset(op_kernel); 

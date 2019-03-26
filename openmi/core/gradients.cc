@@ -1,6 +1,6 @@
 #include "gradients.h"
 #include "algorithm.h"
-#include "gradient_op_registry.h"
+#include "op_registry.h"
 #include "gradient_registry.h"
 
 namespace openmi {

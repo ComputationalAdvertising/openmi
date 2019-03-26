@@ -8,13 +8,20 @@ namespace openmi {
 
 typedef Eigen::ThreadPoolDevice CpuDevice;
 
+/*!
+ * \brief Unary op. it requires at least one input
+ */ 
 template <typename T, typename CHILD> 
 class UnaryOp : public OpKernel {
 public:
   void Compute(OpKernelContext* context) override {
+    CHECK(context->inputs().size() > 0) 
+      << context->name() << " not input node.";
+    
     Tensor& in = context->input(0);
     Tensor& out = context->output();
     if (!out.IsInitialized()) {
+      LOG(DEBUG) << "not initialized";
       TensorShape out_shape;
       auto& related_node = context->GetTensor(
         context->related_node_name());
@@ -123,6 +130,7 @@ struct BaseFunctor {
 
 } // namespace openmi 
 
+// for unary op
 #define OPENMI_REGISTER_UNARY_OP_WITH_TYPE(name, CHILD, T) \
   OPENMI_REGISTER_OP_KERNEL(name,  \
     ::openmi::UnaryOp<T, ::openmi::CHILD<CpuDevice, T>>)  \

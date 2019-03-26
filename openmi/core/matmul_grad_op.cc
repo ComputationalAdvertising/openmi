@@ -1,5 +1,5 @@
 #include "matmul_grad_op.h"
-#include "gradient_op_registry.h"
+#include "op_registry.h"
 #include "base/register.h"
 
 namespace openmi {
@@ -10,11 +10,6 @@ void ZeroslikeGradOp::Compute(OpKernelContext* context) {
 
 void OneslikeGradOp::Compute(OpKernelContext* context) {
   LOG(INFO) << "OneslikeGradOp::Compute ...";
-}
-
-void SigmoidGradOp::Compute(OpKernelContext* context) {
-  LOG(INFO) << "SigmoidGradOp::Compute ...";
-  // dX = y * (1 - y) * dY
 }
 
 void MatMulGradOp::Compute(OpKernelContext* context) {
@@ -35,28 +30,25 @@ void ReduceSumGradOp::Compute(OpKernelContext* context) {
   }
 }
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(MatMul, MatMulGradOp)
+OPENMI_REGISTER_OP_KERNEL(MatMulGrad, MatMulGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(Zeroslike, ZeroslikeGradOp)
+OPENMI_REGISTER_OP_KERNEL(ZeroslikeGrad, ZeroslikeGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(Oneslike, OneslikeGradOp)
+OPENMI_REGISTER_OP_KERNEL(OneslikeGrad, OneslikeGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(Add, AddGradOp)
+OPENMI_REGISTER_OP_KERNEL(AddGrad, AddGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(ReduceSumGrad, ReduceSumGradOp)
+OPENMI_REGISTER_OP_KERNEL(ReduceSumGrad, ReduceSumGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(Sigmoid, SigmoidGradOp)
+OPENMI_REGISTER_OP_KERNEL(VariableGrad, OneslikeGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(Variable, OneslikeGradOp)
-  .Device("CPU");
-
-OPENMI_REGISTER_GRADIENT_OP_KERNEL(Placeholder, OneslikeGradOp)
+OPENMI_REGISTER_OP_KERNEL(PlaceholderGrad, OneslikeGradOp)
   .Device("CPU");
 
 

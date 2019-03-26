@@ -21,6 +21,7 @@ Node* CreateGradNode(const std::string& node_name, const std::string& op,
   return grad_node;
 }
 
+// ReduceSum gradient
 void ReduceSumGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   auto x_name = node.inputs().at(0);
   auto dy_name = dy_list.at(0)->def().name();
@@ -32,11 +33,12 @@ void ReduceSumGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& 
 }
 OPENMI_REGISTER_GRADIENT(ReduceSum, ReduceSumGrad);
 
+// Sigmoid gradient
 void SigmoidGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   auto x_name = node.inputs().at(0);
   auto y_name = node.def().name();
   auto dy_name = dy_list.at(0)->def().name();
-  std::string op("Sigmoid");  // TODO -> SigmoidGrad
+  std::string op("SigmoidGrad");  // TODO -> SigmoidGrad
   std::string dx_node_name(x_name + "_GradOp(" + dy_name + "*" + y_name + "*(1-" + y_name + "))");
   Node* dx = CreateGradNode(dx_node_name, op, g, x_name, NC_OP, NS_REVERSE);
   dx->AddInput(y_name);
@@ -45,7 +47,8 @@ void SigmoidGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx
 }
 OPENMI_REGISTER_GRADIENT(Sigmoid, SigmoidGrad);
 
-void OneslikeGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) { 
+// Oneslike gradient
+void OneslikeGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   LOG(DEBUG) << "OneslikeGrad ...";
 }
 OPENMI_REGISTER_GRADIENT(Oneslike, OneslikeGrad);
@@ -55,9 +58,10 @@ void ZeroslikeGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& 
 }
 OPENMI_REGISTER_GRADIENT(Zeroslike, ZeroslikeGrad);
 
+// MatMul gradient
 void MatMulGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   LOG(INFO) << "MatMulGrad ...";
-  std::string op("MatMul");
+  std::string op("MatMulGrad");
   auto x1_name = node.inputs().at(0);
   auto x2_name = node.inputs().at(1);
   auto y_name = node.def().name();
@@ -78,6 +82,7 @@ void MatMulGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_
 }
 OPENMI_REGISTER_GRADIENT(MatMul, MatMulGrad);
 
+// Add gradient
 void AddGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   LOG(INFO) << "AddGrad ...";
   auto x1_name = node.inputs().at(0);
@@ -85,7 +90,7 @@ void AddGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_lis
   auto y_name = node.def().name();
   auto dy_name = dy_list.at(0)->def().name();
   
-  std::string op("Add"); // TODO Relu -> UnaryMap
+  std::string op("AddGrad"); // TODO Relu -> UnaryMap
   std::string dx1_node_name(x1_name + "_GradOp(" + dy_name + ")");
   Node* dx1 = CreateGradNode(dx1_node_name, op, g, x1_name, NC_OP, NS_REVERSE);
   dx1->AddInput(dy_name);

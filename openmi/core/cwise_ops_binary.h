@@ -1,6 +1,7 @@
 #ifndef OPENMI_CORE_OPS_CWISE_OPS_BINARY_H_ 
 #define OPENMI_CORE_OPS_CWISE_OPS_BINARY_H_ 
 
+#include "cwise_ops_binary_functor.h"
 #include "numeric_op.h"
 
 namespace openmi {
@@ -151,6 +152,10 @@ struct AddFunctorCustomOp {
 
 template <typename T>
 struct AddFunctorCustom : BaseFunctor<T, AddFunctorCustomOp<T>> {
+};
+
+template <typename T>
+struct SigmoidGradOp : BaseFunctor<T, SigmoidGradFunctor<T>> {
 };
 
 } // namespace openmi 
