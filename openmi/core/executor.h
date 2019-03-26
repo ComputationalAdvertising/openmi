@@ -7,6 +7,9 @@
 #include "status.h"
 #include "session_state.h"
 #include "base/logging.h"
+#include "gradients.h"
+
+extern bool is_training;
 
 namespace openmi {
 
@@ -18,9 +21,12 @@ public:
 
   Status Run();
 
-//private:
   SessionState session_state_;
   Graph g_;
+
+private:
+  void InitSessionState();
+  Gradients gradients_;
 }; // class Executor 
 
 } // namespace openmi

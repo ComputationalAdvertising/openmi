@@ -68,7 +68,13 @@ public:
     return is_initialized_; 
   }
 
-  const DataType type() const { return type_; }
+  const DataType type() const { 
+    return type_; 
+  }
+
+  bool IsVector() const {
+    return shape_.Dims() == 1 && shape_.NumElements() == shape_.DimSize(0);
+  }
 
   void set_shape(TensorShape& shape) {
     shape_ = shape;

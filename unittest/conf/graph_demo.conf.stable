@@ -70,21 +70,9 @@ node {
   }
 }
 node {
-  name: "reduce_sum_z"
-  op: "ReduceSum"
-  input: "z"
-  device: "CPU"
-  attr {
-    key: "row_major"
-    value {
-      b: True
-    }
-  }
-}
-node {
   name: "y"
   op: "Sigmoid"
-  input: "reduce_sum_z"
+  input: "z"
   device: "CPU"
   attr {
     key: "row_major"

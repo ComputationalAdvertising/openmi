@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
   b->vec<float>().setConstant(0.002);
   //LOG(INFO) << "content of b:\n" << b->vec<float>();
   
-  // y = 0.139364
+  // y = 0.991998
   Status s = exec.Run();
   
   /*

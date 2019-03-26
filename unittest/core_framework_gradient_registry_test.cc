@@ -9,11 +9,13 @@ int main(int argc, char** argv) {
   Node node;
   node.Initialize(ninfo);
 
+  Node* dy = new Node;
+  dy->Initialize(ninfo);
+  std::vector<Node*> dy_list;
+  dy_list.push_back(dy);
+
   GradConstructor grad;
   GradientRegistry::Instance().Lookup(node_def.op(), &grad);
-  std::vector<Node*> dy_list;
-  dy_list.push_back(&node);
-
   Graph graph;
 
   grad(node, dy_list, dy_list, graph);

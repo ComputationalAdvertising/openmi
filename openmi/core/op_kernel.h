@@ -31,8 +31,8 @@ public:
   // "context " is guaranteed to be alive until Compute() returns. 
   virtual void Compute(OpKernelContext* ctx) = 0;
 }; // class OpKernel
-   
-// TODO OpKernelAsync  
+  
+// TODO AsyncOpKernel
 
 class OpKernelConstruction {
 public:
@@ -59,9 +59,10 @@ public:
     OpKernel* op_kernel = nullptr;
     proto::NodeDef* node_def = nullptr;
     // The inputs for this op 
-    std::vector<std::string> input_name;      // node_def.name
+    std::vector<std::string> input_name;      // node_def.name 
     // The outputs for this op 
     std::vector<std::string> output_name;
+    std::string related_node_name;
   };
 
   explicit OpKernelContext(Params* params);
@@ -80,12 +81,18 @@ public:
 
   std::string name() { return node_def().name(); }
 
+  std::string related_node_name() { return params_->related_node_name; }
+
   Tensor& input(int index) { 
     return params_->session_state->GetTensor(params_->input_name[index]);
   }
 
   Tensor& output() { 
     return params_->session_state->GetTensor(params_->node_def->name());
+  }
+
+  Tensor& GetTensor(const std::string& name) {
+    return params_->session_state->GetTensor(name);
   }
 
   template <typename EigenDeviceType>

@@ -5,6 +5,11 @@
 
 namespace openmi {
 
+template <typename Device, typename TensorType, typename DimPair>
+void MatMulImpl(const Device& d, TensorType out, TensorType in0, TensorType in1, const DimPair& dim_pair) {
+  out.device(d) = in0.contract(in1, dim_pair);
+};
+
 // y = x * w^T
 class MatMul : public OpKernel {
 public:

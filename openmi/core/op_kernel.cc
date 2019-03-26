@@ -14,7 +14,6 @@ OpKernelContext::OpKernelContext(Params* params): params_(params) {}
 
 OpKernelContext::~OpKernelContext() {}
 
-
 template <>
 const Eigen::ThreadPoolDevice& OpKernelContext::eigen_device() const {
   CHECK(params_->device != nullptr) << "OpKernelContext device is null";

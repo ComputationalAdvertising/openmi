@@ -1,79 +1,96 @@
 #include "graph.h"
 #include "op_registry.h"
+#include "gradient_op_registry.h"
 using namespace openmi;
 
 namespace openmi {
 
-Node::Node(): id_(-1), props_(nullptr) {}
-
-void Node::Initialize(int id, std::shared_ptr<NodeProperties> props) {
-  id_ = id;
-  props_ = std::move(props);
+void Node::Initialize(NodeInfo& ninfo) {
+  LOG(INFO) << "Node::Initialize node:" << ninfo.node_def.name();
+  ninfo_ = ninfo;
   // attr value(s) of node 
-  for (auto& attr: props_->node_def.attr()) {
-    LOG(INFO) << "Initialized node attr key:" << attr.first << ", v:" << attr.second.DebugString();
+  for (auto& attr: ninfo_.node_def.attr()) {
+    LOG(DEBUG) << "attr: " << attr.second.DebugString();
     this->attr_[attr.first].FromProto(attr.second);
   }
   OpKernel* op_kernel;
-  OpRegistry::Instance().LookUp(*this, &op_kernel);
-  if (op_kernel == nullptr) {
-    LOG(ERROR) << "fetch op from OpRegistry failed. op_name:" << props_->node_def.op();
-    return;
-  } 
+  if (ninfo_.node_scope == NS_REVERSE) {
+    GradientOpRegistry::Instance().LookUp(*this, &op_kernel);
+  } else {
+    OpRegistry::Instance().LookUp(*this, &op_kernel);
+  }
+  CHECK(op_kernel != nullptr) 
+    << "lookup op from registry failed. op_name:" << ninfo_.node_def.op();
   op_.reset(op_kernel); 
 
   initialized_ = true;
 }
 
-void Node::AddInput(Node* n, int idx) {
-  InputTensor input(n, idx);
-  inputs_.push_back(input);
-}
-
-void Node::AddInput(const std::string in, int idx) {
+void Node::AddInput(const std::string in) {
   input_names_.push_back(in);
 }
 
-void Node::AddOutput(const std::string out, int idx) {
+void Node::AddOutput(const std::string out) {
   output_names_.push_back(out);
 }
 
 void Node::Clear() {
-  id_ = -1;
-  class_ = NC_UNINITIALIZED;
-  props_.reset();
   op_.reset();
+  ninfo_.id = -1;
+  ninfo_.node_class = NC_UNINITIALIZED;
   initialized_ = false;
 }
 
-Node* Graph::AddNode(const NodeInfo& ninfo, Status* status) {
-  Node* n = AddNode(ninfo.node_def, status);
-  n->set_id(ninfo.id);
-  return n;
-}
-
-Node* Graph::AddNode(const proto::NodeDef& node_def, Status* status) {
-  LOG(INFO) << "Graph::AddNode begin";
-  CHECK(node_mapper_.find(node_def.name()) == node_mapper_.end()) 
-    << node_def.name() << " already exists.";
+Node* Graph::AddNode(NodeInfo& ninfo, Status* status) {
+  auto node_name = ninfo.node_def.name();
+  LOG(INFO) << "AddNode name:" << node_name;
+  CHECK(node_mapper_.find(node_name) == node_mapper_.end()) 
+    << ninfo.node_def.name() << " already exists.";
   // TODO OpDef参数与NodeDef参数匹配 
-  std::vector<DataType> inputs;
-  std::vector<DataType> outputs;
-  // status->Update(InOutTypesForNode(node_def, *op_def, &inputs, &outputs));
-  if (!status->ok()) {
-    return nullptr;
+  
+  Node* node = AllocateNode(ninfo);
+  CHECK(node != nullptr) << "add node failed. node:" << node_name;
+  node_mapper_.insert({node_name, node});
+
+  if (ninfo.node_scope == NS_REVERSE) {
+    reversed_nodes_.push_back(node);
   }
 
-  LOG(INFO) << "Graph::AddNode middle";
-  Node* node = AllocateNode(std::make_shared<NodeProperties>(node_def, inputs, outputs));
-  LOG(INFO) << "Graph::AddNode middle 1";
-  CHECK(node != nullptr) << "add node failed. node:" << node_def.name();
-  node_mapper_.insert(std::make_pair(node_def.name(), node));
-  LOG(INFO) << "Graph::AddNode done";
+  nodes_.push_back(node);
+  ++num_nodes_;
+
+  // model parameter nodes
+  if (ninfo.node_def.op() == "Variable") {
+    variable_nodes_.push_back(node);
+  }
+
+  LOG(INFO) << "AddNode moddle name:" << node_name;
   return node;
 }
 
-Node* Graph::FindNode(std::string& node_name) {
+Node* Graph::GetOrCreateNode(NodeInfo& new_ninfo, Node& related_node) {
+  auto node_name = new_ninfo.node_def.name();
+  auto it = node_mapper_.find(node_name);
+  if (it != node_mapper_.end()) {
+    return it->second;
+  }
+  return CreateNode(new_ninfo, related_node);
+}
+
+Node* Graph::CreateNode(NodeInfo& new_ninfo, Node& related_node) {
+  new_ninfo.node_def.set_device(related_node.def().device());
+  new_ninfo.related_node_name = related_node.def().name();
+  related_node.node_info().related_node_name = new_ninfo.node_def.name();
+  LOG(INFO) << "new_info: " << new_ninfo.node_def.name() << ", related: " << related_node.def().name() << ", n: " << related_node.node_info().related_node_name;
+  Status s;
+  Node* new_node = AddNode(new_ninfo, &s);
+  if (!s.ok()) {
+    return nullptr;
+  }
+  return new_node;
+}
+
+Node* Graph::FindNode(const std::string& node_name) {
   auto iter = node_mapper_.find(node_name);
   if (iter == node_mapper_.end()) {
     return nullptr;
@@ -81,23 +98,20 @@ Node* Graph::FindNode(std::string& node_name) {
   return iter->second;
 }
 
-Node* Graph::AllocateNode(std::shared_ptr<NodeProperties> props) {
-  LOG(INFO) << "AllocateNode begin";
+Node* Graph::AllocateNode(NodeInfo& ninfo) {
   Node* node = nullptr;
   if (free_nodes_.empty()) {
+    LOG(INFO) << "AllocateNode ninfo: " << ninfo.node_def.name();
     node = new Node;
   } else {
     node = free_nodes_.back();
     free_nodes_.pop_back();
   }
-  LOG(INFO) << "AllocateNode middle";
-  
+
+  LOG(INFO) << "AllocateNode ninfo: " << ninfo.node_def.name();
   node->graph_ = this;
-  const int id = nodes_.size();
-  node->Initialize(id, std::move(props));
-  nodes_.push_back(node);
-  ++num_nodes_;
-  LOG(INFO) << "AllocateNode done";
+  ninfo.id = nodes_.size();
+  node->Initialize(ninfo);
   return node;
 }
 
@@ -108,10 +122,10 @@ void Graph::ReleaseNode(Node* node) {
   node->Clear();
 }
 
-void Graph::AddInput(std::string name, Node* n, int idx) {
+void Graph::AddInput(std::string name, Node* n) {
   auto iter = node_mapper_.find(name);
   CHECK(iter != node_mapper_.end()) << name << " not exists.";
-  iter->second->AddInput(n->def().name(), idx);
+  iter->second->AddInput(n->def().name());
 }
 
 }

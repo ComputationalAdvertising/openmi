@@ -33,7 +33,7 @@ public:
   
   Code code() const { return ok() ? openmi::OK : state_->code; }
 
-  const std::string& error_message() const {
+  const std::string error_message() const {
     return ok() ? "not error message" : state_->msg;
   }
 

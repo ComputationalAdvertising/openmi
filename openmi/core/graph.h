@@ -17,76 +17,66 @@ namespace openmi {
 class Graph;
 class Node;
 
-class NodeProperties {
-public:
-  NodeProperties(const NodeDef& node_def,
-                 const std::vector<DataType> inputs, 
-                 const std::vector<DataType> outputs)
-    : node_def(node_def), 
-      input_types(inputs),
-      output_types(outputs) {}
-
-  NodeDef node_def;
-  const std::vector<DataType> input_types;
-  const std::vector<DataType> output_types;
-}; // class NodeProperties
-
 enum NodeClass {
-  NC_UNINITIALIZED
+  NC_UNINITIALIZED,
+  NC_SOURCE,
+  NC_OP,
+  NC_EXIT
   // TODO 
 }; 
 
-struct InputTensor {
-  Node* node;
-  int index;
+enum NodeScope {
+  NS_NOTHING,
+  NS_FORWARD,
+  NS_REVERSE
+};
 
-  InputTensor(Node* n, int idx): node(n), index(idx) {}
-  InputTensor() : node(nullptr), index(0) {}
-}; // struct InputTensor
+struct NodeInfo {
+  NodeInfo() {}
 
-struct OutputTensor {
-  Node* node;
-  int index;
+  NodeInfo(proto::NodeDef& def, 
+           int id = -1, 
+           NodeClass node_class = NC_UNINITIALIZED, 
+           NodeScope node_scope = NS_NOTHING,
+           std::string related_node_name = "") 
+    : node_def(def), 
+      id(id),
+      node_class(node_class),
+      node_scope(node_scope), 
+      related_node_name(related_node_name) {}
 
-  OutputTensor(Node* n, int idx): node(n), index(idx) {}
-  OutputTensor() : node(nullptr), index(0) {}
-}; // struct OutputTensor
+  proto::NodeDef node_def;
+  int id;
+  NodeClass node_class;
+  NodeScope node_scope;
+  std::string related_node_name;
+};
 
 class Node {
 public:
-  Node();
+  Node() {}
 
-  void Initialize(int id, std::shared_ptr<NodeProperties> props);
+  void Initialize(NodeInfo& ninfo);
   
   bool IsInitialized() const { return initialized_; }
   
-  void AddInput(Node* n, int idx);
-
-  void AddOutput(Node* n, int idx) { 
-    // TODO  
-  }
-
-  void AddInput(const std::string in, int idx);
-  void AddOutput(const std::string out, int idx);
+  void AddInput(const std::string in);
+  void AddOutput(const std::string out);
   
   void Clear();
 
-  NodeProperties* properties() { return props_.get(); }
-
-  NodeDef& def() { return props_->node_def; }
+  NodeDef& def() { return ninfo_.node_def; }
+  NodeInfo& node_info() { return ninfo_; }
   
   void set_op(OpKernel* op) { op_.reset(op); }
   OpKernel* op() { return op_.get(); }
 
-  void set_id(int id) { id_ = id; } 
-  int id() { return id_; }
+  void set_id(int id) { ninfo_.id = id; } 
+  int id() { return ninfo_.id; }
 
   std::unordered_map<std::string, AttrValue>& attrs() {
     return attr_;
   }
-
-  //std::vector<InputTensor>& inputs() { return inputs_; }
-  //std::vector<OutputTensor>& outputs() { return outputs_; }
 
   std::vector<std::string>& inputs() { return input_names_; }
   std::vector<std::string>& outputs() { return output_names_; }
@@ -96,38 +86,33 @@ public:
 private:
   friend class Graph;
   Graph* graph_;
-  int id_;
-  NodeClass class_;
+  NodeInfo ninfo_;
   std::unique_ptr<OpKernel> op_;
   std::unordered_map<std::string, AttrValue> attr_;
-  std::shared_ptr<NodeProperties> props_;
   bool initialized_;
 
   std::vector<std::string> input_names_;
   std::vector<std::string> output_names_;
-  std::vector<InputTensor> inputs_;
-  std::vector<OutputTensor> outputs_;
 }; // class Node 
 
-struct NodeInfo {
-  NodeInfo(const proto::NodeDef& def, int id): node_def(def), id(id) {}
-  const proto::NodeDef node_def;
-  int id;
-};
 class Graph {
 public:
   Graph(): name_(""), version_(0) {}
 
   ~Graph() {}
 
-  Node* AddNode(const NodeInfo& ninfo, Status* status);
-  Node* AddNode(const NodeDef& node_def, Status* status);
+  Node* AddNode(NodeInfo& ninfo, Status* status);
 
-  Node* FindNode(std::string& node_name);
+  // TODO opti api 
+  Node* CreateNode(NodeInfo& new_ninfo, Node& related_node);
+
+  Node* GetOrCreateNode(NodeInfo& new_ninfo, Node& related_node);
+  
+  Node* FindNode(const std::string& node_name);
   
   void ReleaseNode(Node* n);
 
-  void AddInput(std::string name, Node* n, int idx);
+  void AddInput(std::string name, Node* n);
 
   void set_name(std::string& name) { name_ = name; }
   std::string name() const { return name_; }
@@ -137,11 +122,18 @@ public:
 
   std::vector<Node*>& nodes() { return nodes_; }
   std::vector<Node*>& forward_topo_nodes() { return forward_topo_nodes_; }
+  std::vector<Node*>& global_topo_nodes() { return global_topo_nodes_; }
+  std::vector<Node*>& reversed_nodes() { return reversed_nodes_; }
+  std::vector<Node*>& variable_nodes() { return variable_nodes_; }
+  std::vector<Node*>& variable_gradient_nodes() { return variable_gradient_nodes_; }
+  std::vector<Node*>& sink_nodes() { return sink_nodes_; }
+  std::vector<Node*>& global_sink_nodes() { return global_sink_nodes_; }
 
   std::unordered_map<std::string, Node*>& node_mapper() { return node_mapper_; }
 
+
 private:
-  Node* AllocateNode(std::shared_ptr<NodeProperties> props);
+  Node* AllocateNode(NodeInfo& ninfo);
 
 private:
   // Graph name 
@@ -154,8 +146,17 @@ private:
   std::vector<Node*> free_nodes_;
   // Forward topo order list.
   std::vector<Node*> forward_topo_nodes_;
-  // Reversed topo order list.
-  std::vector<Node*> reversed_topo_nodes_;
+  // Reversed nodes 
+  std::vector<Node*> reversed_nodes_;
+  // All topo order nodes. it contains Forward and Reversed topo nodes.
+  std::vector<Node*> global_topo_nodes_;
+  // Varibale Node respond to  Model Parameters that learning from ps.
+  // input nodes of gradients 
+  std::vector<Node*> variable_nodes_; 
+  std::vector<Node*> variable_gradient_nodes_; 
+  // sink nodes that not in all node deps 
+  std::vector<Node*> sink_nodes_;
+  std::vector<Node*> global_sink_nodes_;
 
   std::unordered_map<std::string, Node*> node_mapper_;
 

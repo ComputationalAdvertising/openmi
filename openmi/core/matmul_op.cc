@@ -69,8 +69,11 @@ void MatMul::Compute(OpKernelContext* ctx) {
   auto A = a->tensor<float, 2>();
   auto B = b->tensor<float, 2>();
   auto Y = out->tensor<float, 2>();
-  
-  Y.device(d) = A.contract(B, dim_pair_);
+
+  MatMulImpl<CpuDevice, TTypes<float, 2>::Tensor, 
+    Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> >(d, Y, A, B, dim_pair_);
+
+  //Y.device(d) = A.contract(B, dim_pair_);
   
   LOG(INFO) << "X1:\n" << A << ", transpose_a:" << transpose_a_;
   LOG(INFO) << "X2:\n" << B << ", transpose_b:" << transpose_b_; 

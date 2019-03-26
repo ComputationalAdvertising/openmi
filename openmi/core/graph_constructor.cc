@@ -25,7 +25,8 @@ private:
   std::vector<std::pair<Node*, int>>* return_tensors_;
 }; // class GraphConstructor
 
-Status GraphConstructor::Construct(proto::GraphDef* gdef, Graph* g, 
+Status GraphConstructor::Construct(proto::GraphDef* gdef, 
+                                   Graph* g, 
                                    std::vector<std::pair<Node*, int>>* return_tensors) {
   GraphConstructor gc(gdef, g, return_tensors);
   return gc.TryImport();
@@ -37,21 +38,22 @@ Status GraphConstructor::TryImport() {
   g_->set_version(gdef_->version());
   Status s;
   for (int i = 0; i < gdef_->node().size(); ++i) {
-    NodeInfo ninfo(gdef_->node(i), i);
+    proto::NodeDef* node_def = const_cast<proto::NodeDef*>(&gdef_->node(i));
+    NodeInfo ninfo(*node_def, i, NC_OP, NS_FORWARD);
     g_->AddNode(ninfo, &s);
+    LOG(INFO) << gdef_->node(i).name() << " node add done.";
   }
 
-  LOG(INFO) << "GraphConstructor::TryImport middle";
   // parse node dependencies 
   for (auto& node_def: gdef_->node()) {
     for (int i = 0; i < node_def.input().size(); ++i) {
       auto input = node_def.input(i);
       Node* n = g_->FindNode(input);
       CHECK(n != nullptr) << input << " not in graphdef.";
-      g_->AddInput(node_def.name(), n, i);
+      g_->AddInput(node_def.name(), n);
     }
   }
-  LOG(INFO) << "GraphConstructor::TryImport done";
+  //LOG(INFO) << "GraphConstructor::TryImport done";
   return Status::OK();
 }
 

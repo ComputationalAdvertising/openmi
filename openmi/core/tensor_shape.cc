@@ -66,7 +66,7 @@ bool TensorShape::IsSameSize(const TensorShape& other) const {
   }
   for (int i = 0; i < dims_.size(); ++i) {
     if (DimSize(i) != other.DimSize(i)) {
-      false;
+      return false;
     }
   }
   return true;
