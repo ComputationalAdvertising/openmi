@@ -14,20 +14,9 @@ void OneslikeGradOp::Compute(OpKernelContext* context) {
 
 void MatMulGradOp::Compute(OpKernelContext* context) {
   LOG(INFO) << "MatMulGradOp::Compute ...";
+  LOG(DEBUG) << "current node def:\n" << context->node_def().DebugString();
   // dX1 = dY * X2^T
   // dX2 = X1^ * dY
-}
-
-void AddGradOp::Compute(OpKernelContext* context) {
-  LOG(INFO) << "AddGradOp::Compute ...";
-}
-
-void ReduceSumGradOp::Compute(OpKernelContext* context) {
-  LOG(INFO) << "ReduceSumOp::Compute ...";
-  auto& out = context->output();
-  if (!out.IsInitialized()) {
-    LOG(DEBUG) << context->name() << " is not initialized.";
-  }
 }
 
 OPENMI_REGISTER_OP_KERNEL(MatMulGrad, MatMulGradOp)
@@ -39,11 +28,7 @@ OPENMI_REGISTER_OP_KERNEL(ZeroslikeGrad, ZeroslikeGradOp)
 OPENMI_REGISTER_OP_KERNEL(OneslikeGrad, OneslikeGradOp)
   .Device("CPU");
 
-OPENMI_REGISTER_OP_KERNEL(AddGrad, AddGradOp)
-  .Device("CPU");
-
-OPENMI_REGISTER_OP_KERNEL(ReduceSumGrad, ReduceSumGradOp)
-  .Device("CPU");
+//OPENMI_REGISTER_OP_KERNEL(AddGrad, AddGradOp).Device("CPU");
 
 OPENMI_REGISTER_OP_KERNEL(VariableGrad, OneslikeGradOp)
   .Device("CPU");

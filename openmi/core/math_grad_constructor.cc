@@ -1,4 +1,5 @@
 #include "gradient_registry.h"
+#include "attr_value_utils.h"
 #include "base/logging.h"
 #include "base/register.h"
 
@@ -61,7 +62,7 @@ OPENMI_REGISTER_GRADIENT(Zeroslike, ZeroslikeGrad);
 // MatMul gradient
 void MatMulGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   LOG(INFO) << "MatMulGrad ...";
-  std::string op("MatMulGrad");
+  std::string op("MatMul");
   auto x1_name = node.inputs().at(0);
   auto x2_name = node.inputs().at(1);
   auto y_name = node.def().name();
@@ -70,14 +71,18 @@ void MatMulGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_
   Node* dx1 = CreateGradNode(dx1_node_name, op, g, x1_name, NC_OP, NS_REVERSE);
   dx1->AddInput(dy_name);
   dx1->AddInput(x2_name);
-  // TODO transpose parameters
+  auto attr = const_cast<proto::NodeDef&>(dx1->def()).mutable_attr();
+  attr->insert({"transpose_a", *attr_b(false)});
+  attr->insert({"transpose_b", *attr_b(true)});
   dx_list.push_back(dx1);
 
   std::string dx2_node_name(x2_name + "_GradOp(" + x1_name + "^T * " + dy_name + ")");
   Node* dx2 = CreateGradNode(dx2_node_name, op, g, x2_name, NC_OP, NS_REVERSE);
   dx2->AddInput(node.inputs()[0]);
   dx2->AddInput(dy_list[0]->def().name());
-  // TODO 指定MatMul需要的transpose参数
+  attr = const_cast<proto::NodeDef&>(dx2->def()).mutable_attr();
+  attr->insert({"transpose_a", *attr_b(true)});
+  attr->insert({"transpose_b", *attr_b(false)});
   dx_list.push_back(dx2);
 }
 OPENMI_REGISTER_GRADIENT(MatMul, MatMulGrad);

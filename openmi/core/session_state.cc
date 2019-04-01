@@ -8,7 +8,7 @@ Status SessionState::GetTensor(const std::string& handle, Tensor** tensor) {
 }
 
 Tensor& SessionState::GetTensor(const std::string& handle) {
-  LOG(DEBUG) << "handler: " << handle;
+  //LOG(DEBUG) << "handler: " << handle;
   std::unique_lock<std::mutex> lock(mutex_);
   auto it = tensor_mapper_.find(handle);
   CHECK(it != tensor_mapper_.end()) << " The Tensor with handle '" << handle 

@@ -14,7 +14,7 @@ struct SigmoidGradFunctor {
   const T operator()(const T& y, const T& dy) const {
     return dy * y * (1 - y);
   }
-}; // struct SigmoidGradOp
+}; // struct SigmoidGradFunctor
 
 } // namespace openmi
 #endif // OPENMI_CORE_OPS_CWISE_OPS_BINARY_FUNCTOR_H_

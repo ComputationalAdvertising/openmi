@@ -2,12 +2,14 @@
 #define OPENMI_CORE_OPS_CWISE_OPS_BINARY_H_ 
 
 #include "cwise_ops_binary_functor.h"
+#include "tensor_types.h"
 #include "numeric_op.h"
 
 namespace openmi {
 
 extern void UpdateOneVectorReshape(Tensor& t, uint64_t* reshape, int dim_size);
-extern void UpdateMultiDimReshape(Tensor& t, uint64_t* reshape, int dim_size);
+extern void UpdateMultiDimReshape(Tensor& t, uint64_t* reshape, int dim_size); 
+extern void ReshapeTensor(Tensor& t, uint64_t* reshape, int dims);
 
 template <typename Device, typename FUNCTOR, typename T, int NDIMS>
 inline void BinaryOperate(OpKernelContext* context, Tensor& in0, Tensor& in1, Tensor& out) {
@@ -81,7 +83,7 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
     rbcast_dims[i] = rbcast[i];
   }
 
-  //LOG(INFO) << "is_lbcast: " << is_lbcast << ", is_rbcast: " << is_rbcast;
+  //LOG(INFO) << "is_lbcast: " << is_lbcast << ", is_rbcast: " << is_rbcast; 
   
   typename FUNCTOR::func func;
   auto d = context->eigen_device<Device>();
@@ -93,10 +95,10 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
       X1.reshape(rreshape_dims), func);
   } else if (!is_lbcast && is_rbcast) {
     Y.device(d) = X0.reshape(lreshape_dims).binaryExpr(
-      X1.reshape(rreshape_dims).broadcast(rbcast_dims), typename FUNCTOR::func());
+      X1.reshape(rreshape_dims).broadcast(rbcast_dims), func);
   } else {
     Y.device(d) = X0.reshape(lreshape_dims).binaryExpr(
-      X1.reshape(rreshape_dims), typename FUNCTOR::func());
+      X1.reshape(rreshape_dims), func);
   }
   /*
     auto X00 = X0.reshape(lreshape_dims);

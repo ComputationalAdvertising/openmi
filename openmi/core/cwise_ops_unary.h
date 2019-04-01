@@ -12,6 +12,8 @@ template <typename Device, typename FUNCTOR, typename T>
 struct UnaryElementWiseOp : public UnaryOp<T, UnaryElementWiseOp<Device, FUNCTOR, T>> {
   template <int NDIMS>
   void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
+    CHECK(in.shape().IsSameSize(out.shape())) << "shape not match. "
+      <<"in:" << in.shape().DebugString() << ", out:" << out.shape().DebugString();
     typename FUNCTOR::func func;
     auto d = context->eigen_device<Device>();
     auto X = in.flat<T>();

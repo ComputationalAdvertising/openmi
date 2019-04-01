@@ -6,34 +6,69 @@
 
 namespace openmi {
 
+// dims(in) <= dims(out)
+template <typename Device, typename T>
+class ReduceSumGradOp : public UnaryOp<T, ReduceSumGradOp<Device, T>> {
+public:
+  template <int NDIMS>
+  void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
+    bool keep_dims = false;
+    Eigen::array<Eigen::DenseIndex, NDIMS> in_dims, out_dims, bcast_dims;
+    ReshapeTensor<NDIMS>(in, in_dims);
+    ReshapeTensor<NDIMS>(out, out_dims);
+
+    bool is_bcast = false;
+    for (int i = 0; i < NDIMS; ++i) {
+      bcast_dims[i] = in_dims[i] == 1 ? out_dims[i] : 1;
+      if (bcast_dims[i] != 1) {
+        is_bcast = true;
+      }
+    }
+    
+    Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> X(in.Base<T>(), in_dims);
+    Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> Y(out.Base<T>(), out_dims);
+
+    auto d = context->template eigen_device<Device>();
+    if (is_bcast) {
+      Y.device(d) = X.broadcast(bcast_dims);
+    } else {
+      Y.device(d) = X;
+    }
+    
+    LOG(DEBUG) << "in: " << in.shape().DebugString() << ", value:\n" << X;
+    LOG(DEBUG) << "out: " << out.shape().DebugString() << ", value:\n" << Y;
+  }
+}; // class ReduceSumGradOp
+
+// dims(in) >= dims(out)
 template <typename Device, typename T>
 class ReduceSumOp : public UnaryOp<T, ReduceSumOp<Device, T>> {
 public:
   template <int NDIMS>
   void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
-    bool keep_dims = false;
-    int ndims = in.shape().Dims();
-    int axis = ndims - 1;
+    bool keep_dims = false; 
+    int axis = NDIMS - 1;  // default
     Eigen::array<int, 1> depth_dim;
     depth_dim[0] = axis;
-    
-    std::vector<uint64_t> out_shape;
-    out_shape.resize(keep_dims || ndims == 1 ? ndims : ndims - 1);
-    for (auto i = 0; i < out_shape.size(); ++i) {
-      out_shape[i] = context->input(0).shape().DimSize(i);
-    }
-    if (!out.IsInitialized() || out.shape().Dims() != out_shape.size()) {
-      LOG(DEBUG) << "shape not match";
-      TensorShape shape(out_shape);
-      out.AllocateTensor(shape);
-    }
-    LOG(DEBUG) << "X: " << in.shape().DebugString();
 
-    auto X = in.tensor<T, NDIMS>();
-    auto Y = out.tensor<T, NDIMS>();
+    if (in.shape().IsSameSize(out.shape())) {
+      size_t out_rank_size = out.shape().Dims();
+      if (!keep_dims) {
+        out.shape().DeleteDim(out_rank_size - 1);
+      } else {
+        out.shape().SetDim(out_rank_size - 1, 1);
+      }
+      out.ReallocateTensor(out.shape());
+    }
+
+    Eigen::array<Eigen::DenseIndex, NDIMS> in_dims, out_dims;
+    ReshapeTensor<NDIMS>(in, in_dims);
+    ReshapeTensor<NDIMS>(out, out_dims);
     
+    Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> X(in.Base<T>(), in_dims);
+    Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> Y(out.Base<T>(), out_dims);
+
     auto d = context->template eigen_device<Device>();
-
     Y.device(d) = X.sum(depth_dim);
 
     LOG(DEBUG) << "Y: " << out.shape().DebugString() << "\nvalue:\n" << Y;

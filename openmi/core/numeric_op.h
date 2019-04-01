@@ -20,6 +20,7 @@ public:
     
     Tensor& in = context->input(0);
     Tensor& out = context->output();
+    LOG(DEBUG) << "in.name: " << context->inputs().at(0) << ", out.name: " << context->name() << ", related_node: " << context->related_node_name();
     if (!out.IsInitialized()) {
       LOG(DEBUG) << "not initialized";
       TensorShape out_shape;
@@ -33,7 +34,8 @@ public:
       out.AllocateTensor(out_shape);
     }
 
-    switch (in.shape().Dims()) {
+    size_t max_dims = std::max(in.shape().Dims(), out.shape().Dims());
+    switch (max_dims) {
 #define NDIM_CASE(NDIMS)  \
     case NDIMS: { \
       static_cast<CHILD*>(this)->template Operate<NDIMS>(context, in, out); \

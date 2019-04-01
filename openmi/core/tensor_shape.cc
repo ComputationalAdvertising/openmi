@@ -60,6 +60,13 @@ void TensorShape::SetDim(int d, uint64_t size) {
   num_elements_ *= size;
 }
 
+void TensorShape::DeleteDim(int index) {
+  CHECK(index < dims_.size()) 
+    << index << " extends out of range. dims_:" << dims_.size();
+  num_elements_ /= dims_[index];
+  dims_.erase(dims_.begin() + index, dims_.begin() + index + 1);
+}
+
 bool TensorShape::IsSameSize(const TensorShape& other) const {
   if (dims_.size() != other.dims_.size()) {
     return false;

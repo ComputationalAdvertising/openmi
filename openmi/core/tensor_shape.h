@@ -40,6 +40,8 @@ public:
 
   void SetDim(int d, uint64_t size);
 
+  void DeleteDim(int index);
+
   std::vector<uint64_t>& Shape() { return dims_; }
   
   // Return the number of dimensions in the tensor

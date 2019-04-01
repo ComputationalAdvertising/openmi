@@ -29,7 +29,6 @@ public:
   }
 
   void* data() { return data_; }
-
   size_t size() const { return size_; }
 
   bool IsInitialized() const { return is_initialized_; }
@@ -37,6 +36,14 @@ public:
   template <typename T>
   T* Base() {
     return reinterpret_cast<T*>(data());
+  }
+
+  void Clear() {
+    if (data_ != nullptr) {
+      alloc_->DeallocateRaw(data_);
+      data_ = nullptr;
+      is_initialized_ = false;
+    }
   }
 
   bool OwnsMemory() const { return true; }
@@ -143,6 +150,11 @@ public:
     if (buf_->IsInitialized()) {
       is_initialized_ = true;
     }
+  }
+
+  void ReallocateTensor(TensorShape& shape) {
+    buf_->Clear();
+    AllocateTensor(shape);
   }
 
 private:

@@ -7,6 +7,7 @@
 #include "device.h"
 #include "status.h"
 #include "session_state.h"
+#include "tensor_utils.h"
 #include "openmi/idl/proto/node_def.pb.h"
 #include "openmi/idl/proto/types.pb.h"
 #include "base/logging.h"
@@ -42,6 +43,8 @@ public:
   : name_(name), attr_(attr) {}
 
   std::unordered_map<std::string, AttrValue>& attrs() { return attr_; }
+
+  // TODO GetAttr 用于opKernel::Initialize方法使用
 
   std::string name() { return name_; }
 

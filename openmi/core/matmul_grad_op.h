@@ -20,15 +20,5 @@ public:
   void Compute(OpKernelContext* context) override;
 }; // class OneslikeGradOp
 
-class AddGradOp : public OpKernel {
-public:
-  void Compute(OpKernelContext* context) override;
-}; // class AddGradOp
-
-class ReduceSumGradOp : public OpKernel {
-public:
-  void Compute(OpKernelContext* context) override; 
-}; // class ReduceSumGradOp
-
 } // namespace openmi
 #endif // OPENMI_CORE_OPS_MATMUL_OP_GRADIENT_H_

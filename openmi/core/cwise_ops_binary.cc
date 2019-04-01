@@ -20,6 +20,14 @@ void UpdateMultiDimReshape(Tensor& t, uint64_t* reshape, int dim_size) {
   }
 }
 
+void ReshapeTensor(Tensor& t, uint64_t* reshape, int dim_size) {
+  for (size_t i = 0; i < t.shape().Dims(); ++i) {
+    reshape[i] = t.shape().DimSize(i);
+  }
+  for (size_t i = t.shape().Dims(); i < dim_size; ++i) {
+    reshape[i] = 1;
+  }
+}
 /*
 OPENMI_REGISTER_BINARY_ELEMENT_WISE_OP(Sub, SubFunctor)
 OPENMI_REGISTER_BINARY_ELEMENT_WISE_OP(Mul, MulFunctor)
