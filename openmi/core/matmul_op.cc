@@ -7,161 +7,87 @@ using namespace openmi;
 
 namespace openmi {
 
-DataType tmp(DataType type) {
-  switch(type) {
-    case DT_FLOAT:
-      return DT_FLOAT;
-    case DT_DOUBLE:
-      return DT_DOUBLE;
-    default:
-      LOG(ERROR) << "Unrecognized DataType. " << type;
-      return DT_INVALID;
-  }
-}
+/*!
+ * \brief matrix multpily 
+ *    In0: m*n, In1:n*k -> Y: m*k
+ */
+template <typename Device, typename T>
+class MatMulOp : public OpKernel {
+public:
+  void Initialize(OpKernelConstruction* context) override;
 
-void MatMul::Initialize(OpKernelConstruction* ctx) {
-  auto it = ctx->attrs().find("transpose_a");
-  if (it != ctx->attrs().end()) {
-    CHECK(it->second.attr_type == ::openmi::AttrValue::kBool);
-    transpose_a_ = it->second.b;
-  }
+  void Compute(OpKernelContext* context) override;
 
-  it = ctx->attrs().find("transpose_b");
-  if (it != ctx->attrs().end()) {
-    CHECK(it->second.attr_type == ::openmi::AttrValue::kBool);
-    transpose_b_ = it->second.b;
-  }
-  
+private:
+  bool transpose_a_ = false;
+  bool transpose_b_ = false;
+  Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> dim_pair_;
+}; // class MatMul
+
+template <typename Device, typename T>
+void MatMulOp<Device, T>::Initialize(OpKernelConstruction* ctx) {
+  ctx->GetAttr<bool>("transpose_a", &transpose_a_, ::openmi::AttrValue::kBool);
+  ctx->GetAttr<bool>("transpose_b", &transpose_b_, ::openmi::AttrValue::kBool);
   dim_pair_[0].first = transpose_a_ ? 0 : 1;
   dim_pair_[0].second = transpose_b_ ? 1 : 0;
-
-  LOG(INFO) << "MatMul::Initialize done";
 }
 
-void MatMul::Compute(OpKernelContext* ctx) {
-  Tensor* a = nullptr;
-  Status status = ctx->session_state()->GetTensor(ctx->inputs()[0], &a);
-  Tensor* b = nullptr;
-  status = ctx->session_state()->GetTensor(ctx->inputs()[1], &b);
+template <typename Device, typename T>
+void MatMulOp<Device, T>::Compute(OpKernelContext* ctx) {
+  auto& in0 = ctx->input(0);
+  auto& in1 = ctx->input(1);
+  auto& out = ctx->output();
 
-  LOG(INFO) << "a: " << a->shape().DebugString();
-  LOG(INFO) << "b: " << b->shape().DebugString();
-  
-  Tensor* out = nullptr;
-  std::string out_name = ctx->name();
-  ctx->session_state()->GetTensor(out_name, &out);
-  if (!out->IsInitialized()) {
+  auto X0 = in0.matrix<T>();
+  auto X1 = in1.matrix<T>();
+
+  LOG(DEBUG) << "in0: " << ctx->inputs().at(0) << ", transpose:" << transpose_a_ 
+    << ", shape:" << in0.shape().DebugString() << ", value:\n" << X0;
+  LOG(DEBUG) << "in1: " << ctx->inputs().at(1) << ", transpose:" << transpose_b_ 
+    << ", shape:" << in1.shape().DebugString() << ", value:\n" << X1;
+
+  if (!out.IsInitialized()) {
     TensorShape out_shape;
-    int a_dim_remaining = 1 - dim_pair_[0].first;
-    int b_dim_remaining = 1 - dim_pair_[0].second;
-    out_shape.AddDim(a->shape().DimSize(a_dim_remaining));
-    out_shape.AddDim(b->shape().DimSize(b_dim_remaining));
-    out->set_shape(out_shape);
-    out->Init();
-    LOG(INFO) << "xw^T shape: " << out_shape.DebugString();
+    auto& related_node = ctx->GetTensor(ctx->related_node_name());
+    if (related_node.IsInitialized()) {
+      LOG(DEBUG) << "related initialized. shape: " << related_node.shape().DebugString();
+      out_shape = related_node.shape();
+    } else {
+      int a_dim_remaining = 1 - dim_pair_[0].first;
+      int b_dim_remaining = 1 - dim_pair_[0].second;
+      out_shape.AddDim(in0.shape().DimSize(a_dim_remaining));
+      out_shape.AddDim(in1.shape().DimSize(b_dim_remaining));
+      LOG(DEBUG) << "out shape: " << out_shape.DebugString();
+    }
+
+    out.AllocateTensor(out_shape);
+    if (out.IsInitialized()) {
+      LOG(DEBUG) << "out already initialized. num elements: " << out.shape().NumElements();
+    } else {
+      LOG(ERROR) << "out is not initialized";
+    }
   }
 
-  Allocator* allocator = cpu_allocator();
-  LocalDevice device(2);
-  device.set_allocator(allocator);
-  const Eigen::ThreadPoolDevice& d = device.eigen_cpu_device();
+  auto d = ctx->template eigen_device<Device>();
+  auto Y = out.matrix<T>();
 
-  auto A = a->tensor<float, 2>();
-  auto B = b->tensor<float, 2>();
-  auto Y = out->tensor<float, 2>();
-
-  MatMulImpl<CpuDevice, TTypes<float, 2>::Tensor, 
-    Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> >(d, Y, A, B, dim_pair_);
-
-  //Y.device(d) = A.contract(B, dim_pair_);
-  
-  LOG(INFO) << "X1:\n" << A << ", transpose_a:" << transpose_a_;
-  LOG(INFO) << "X2:\n" << B << ", transpose_b:" << transpose_b_; 
-  LOG(INFO) << "name:" << out_name << ", Y:\n" << Y << "\nsizeof(tensor::type): " << SizeOfType(out->type());
+  Y.device(d) = X0.contract(X1, dim_pair_);
+  /*
+  MatMulImpl<Device, typename TTypes<T>::Matrix, 
+    Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> >(d, Y, X0, X1, dim_pair_);
+  */
+  LOG(DEBUG) << "name:" << ctx->name() << ", Y:\n" << Y;
 }
 
-/**
-void MatMul::Compute(OpKernelContext* ctx) {
-  Tensor* a = nullptr;
-  Status status = ctx->session_state()->GetTensor(ctx->inputs()[0], &a);
-  Tensor* b = nullptr;
-  status = ctx->session_state()->GetTensor(ctx->inputs()[1], &b);
-
-  auto it = ctx->attrs().find("transpose_a");
-  if (it != ctx->attrs().end()) {
-    CHECK(it->second.attr_type == ::openmi::AttrValue::kBool);
-    transpose_a_ = it->second.b;
-  }
-
-  it = ctx->attrs().find("transpose_b");
-  if (it != ctx->attrs().end()) {
-    CHECK(it->second.attr_type == ::openmi::AttrValue::kBool);
-    transpose_b_ = it->second.b;
-  }
-
-  TensorShape shape;
-  if (transpose_a_) {
-    shape.AddDim(a->shape().DimSize(1));
-  } else {
-    shape.AddDim(a->shape().DimSize(0));
-  }
-
-  if (transpose_b_) {
-    shape.AddDim(b->shape().DimSize(0));
-  } else {
-    shape.AddDim(b->shape().DimSize(1));
-  }
-
-  LOG(INFO) << "xw^T shape: " << shape.DebugString();
-
-  Tensor* y = nullptr;
-  std::string out_name = ctx->name();
-  status = ctx->session_state()->GetTensor(out_name, &y);
-  if (!y->IsInitialized()) {
-    y->set_shape(shape);
-    y->Init();
-    // TODO initialize tensor
-  }
-
-  //typedef EnumToDataType<a->type()>::T TA;
-  auto X1 = a->ToEigenMatrix<float>();
-  //typedef EnumToDataType<b->type()>::T TB;
-  auto X2 = b->ToEigenMatrix<float>();
-  //typedef EnumToDataType<y->type()>::T TY;
-  auto Y = y->ToEigenMatrix<float>();
-
-  if (!transpose_a_ && !transpose_b_) {
-    Y.noalias() = X1 * X2;
-  } else if (!transpose_a_ && transpose_b_) {
-    Y.noalias() = X1 * X2.transpose();
-  } else if (transpose_a_ && !transpose_b_) {
-    Y.noalias() = X1.transpose() * X2;
-  } else {
-    Y.noalias() = X1.transpose() * X2.transpose();
-  }
-
-  LOG(INFO) << "X1:\n" << X1 << ", transpose_a:" << transpose_a_;
-  LOG(INFO) << "X2:\n" << X2 << ", transpose_b:" << transpose_b_; 
-  LOG(INFO) << "name:" << out_name << ", Y:\n" << Y << "\nsizeof(tensor::type): " << SizeOfType(y->type());
-
-  //DataType dt = a->type();
-  //const DataType newdt = tmp(dt);
-  //typedef EnumToDataType<newdt>::T T;
-  //LOG(INFO) << "sizeof: " << sizeof(T);
-}
-*/
-
-//OPENMI_REGISTER_OP_KERNEL(MatMul, MatMul).Device("CPU");
-
-#define REGISTER_MATMUL(T) \
-  OPENMI_REGISTER_OP_KERNEL(MatMul, MatMul)  \
+#define REGISTER_MATMUL_OP(T) \
+  OPENMI_REGISTER_OP_KERNEL(MatMul, MatMulOp<CpuDevice, T>)  \
     .Device("CPU") \
     .TypeConstraint<T>();
 
-REGISTER_MATMUL(float)
-REGISTER_MATMUL(double)
-REGISTER_MATMUL(int)
+REGISTER_MATMUL_OP(float)
+REGISTER_MATMUL_OP(double)
+REGISTER_MATMUL_OP(int)
 
-OPENMI_REGISTER_FILE_TAG(MatMul);
+OPENMI_REGISTER_FILE_TAG(matmul_op);
 
 }

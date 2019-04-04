@@ -77,7 +77,7 @@ public:
   std::unordered_map<std::string, AttrValue>& attrs() {
     return attr_;
   }
-
+  
   std::vector<std::string>& inputs() { return input_names_; }
   std::vector<std::string>& outputs() { return output_names_; }
 

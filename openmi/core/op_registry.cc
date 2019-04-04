@@ -88,7 +88,7 @@ OPENMI_REGISTER_LINK_TAG(oneslike_op);
 OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
 OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
 OPENMI_REGISTER_LINK_TAG(assign_op);
-OPENMI_REGISTER_LINK_TAG(MatMul);
+OPENMI_REGISTER_LINK_TAG(matmul_op);
 OPENMI_REGISTER_LINK_TAG(Variable);
 
 } // namespace openmi

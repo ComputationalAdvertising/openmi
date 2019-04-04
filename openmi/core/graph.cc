@@ -9,7 +9,6 @@ void Node::Initialize(NodeInfo& ninfo) {
   ninfo_ = ninfo;
   // attr value(s) of node 
   for (auto& attr: ninfo_.node_def.attr()) {
-    LOG(DEBUG) << "attr: " << attr.second.DebugString();
     this->attr_[attr.first].FromProto(attr.second);
   }
   OpKernel* op_kernel;
@@ -41,7 +40,6 @@ Node* Graph::AddNode(NodeInfo& ninfo, Status* status) {
   LOG(INFO) << "AddNode name:" << node_name;
   CHECK(node_mapper_.find(node_name) == node_mapper_.end()) 
     << ninfo.node_def.name() << " already exists.";
-  // TODO OpDef参数与NodeDef参数匹配 
   
   Node* node = AllocateNode(ninfo);
   CHECK(node != nullptr) << "add node failed. node:" << node_name;
@@ -59,7 +57,7 @@ Node* Graph::AddNode(NodeInfo& ninfo, Status* status) {
     variable_nodes_.push_back(node);
   }
 
-  LOG(INFO) << "AddNode moddle name:" << node_name;
+  LOG(INFO) << "AddNode name:" << node_name;
   return node;
 }
 

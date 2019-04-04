@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "attr_value.h"
+#include "attr_value_utils.h"
 #include "device.h"
 #include "status.h"
 #include "session_state.h"
@@ -44,7 +45,10 @@ public:
 
   std::unordered_map<std::string, AttrValue>& attrs() { return attr_; }
 
-  // TODO GetAttr 用于opKernel::Initialize方法使用
+  template <typename T>
+  void GetAttr(const std::string& key, T* value, AttrValue::AttrType attr_type) {
+    openmi::GetAttr<T>(attr_, key, value, attr_type);
+  }
 
   std::string name() { return name_; }
 
@@ -87,7 +91,7 @@ public:
   std::string related_node_name() { return params_->related_node_name; }
 
   Tensor& input(int index) { 
-    return params_->session_state->GetTensor(params_->input_name[index]);
+    return params_->session_state->GetTensor(params_->input_name.at(index));
   }
 
   Tensor& output() { 
