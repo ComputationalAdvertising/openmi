@@ -6,8 +6,6 @@
 
 namespace openmi {
 
-typedef Eigen::ThreadPoolDevice CpuDevice;
-
 /*!
  * \brief Unary op. it requires at least one input
  */ 
@@ -24,10 +22,9 @@ public:
     if (!out.IsInitialized()) {
       LOG(DEBUG) << "not initialized";
       TensorShape out_shape;
-      auto& related_node = context->GetTensor(
-        context->related_node_name());
-      if (related_node.IsInitialized()) {
-        out_shape = related_node.shape();
+      auto* related_node = context->GetTensor(context->related_node_name());
+      if (related_node != nullptr && related_node->IsInitialized()) {
+        out_shape = related_node->shape();
       } else {
         out_shape = in.shape();
       }
@@ -76,10 +73,9 @@ public:
 
     if (!out.IsInitialized()) {
       TensorShape out_shape;
-      auto& related_node = context->GetTensor(
-        context->related_node_name());
-      if (related_node.IsInitialized()) {
-        out_shape = related_node.shape();
+      auto* related_node = context->GetTensor(context->related_node_name());
+      if (related_node != nullptr && related_node->IsInitialized()) {
+        out_shape = related_node->shape();
       } else {
         for (auto i = 0; i < max_dims; ++i) {
           auto in0_ith_dim = 1;

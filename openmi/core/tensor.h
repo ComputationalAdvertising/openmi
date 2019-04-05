@@ -106,6 +106,11 @@ public:
   }
 
   template <typename T>
+  typename TTypes<T>::ConstMatrix matrix() const {
+    return tensor<T, 2>();
+  }
+
+  template <typename T>
   typename TTypes<T>::Flat flat() {
     std::vector<uint64_t> new_sizes;
     new_sizes.push_back(shape().NumElements());

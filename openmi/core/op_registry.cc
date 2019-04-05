@@ -84,11 +84,13 @@ OPENMI_REGISTER_LINK_TAG(binary_div_op);
 OPENMI_REGISTER_LINK_TAG(binary_sigmoid_grad_op);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_binary);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_unary);
-OPENMI_REGISTER_LINK_TAG(oneslike_op);
-OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
-OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
 OPENMI_REGISTER_LINK_TAG(assign_op);
 OPENMI_REGISTER_LINK_TAG(matmul_op);
+OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
+OPENMI_REGISTER_LINK_TAG(oneslike_op);
+OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
+OPENMI_REGISTER_LINK_TAG(softmax_cross_entropy_with_logits);
+OPENMI_REGISTER_LINK_TAG(softmax_op);
 OPENMI_REGISTER_LINK_TAG(Variable);
 
 } // namespace openmi

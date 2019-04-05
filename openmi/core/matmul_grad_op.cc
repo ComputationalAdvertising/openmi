@@ -19,7 +19,7 @@ void MatMulGradOp::Compute(OpKernelContext* context) {
   // dX2 = X1^ * dY
 }
 
-OPENMI_REGISTER_OP_KERNEL(MatMulGrad, MatMulGradOp)
+OPENMI_REGISTER_OP_KERNEL(SoftmaxGrad, MatMulGradOp)
   .Device("CPU");
 
 OPENMI_REGISTER_OP_KERNEL(ZeroslikeGrad, ZeroslikeGradOp)
@@ -27,8 +27,6 @@ OPENMI_REGISTER_OP_KERNEL(ZeroslikeGrad, ZeroslikeGradOp)
 
 OPENMI_REGISTER_OP_KERNEL(OneslikeGrad, OneslikeGradOp)
   .Device("CPU");
-
-//OPENMI_REGISTER_OP_KERNEL(AddGrad, AddGradOp).Device("CPU");
 
 OPENMI_REGISTER_OP_KERNEL(VariableGrad, OneslikeGradOp)
   .Device("CPU");

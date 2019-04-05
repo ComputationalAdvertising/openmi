@@ -90,15 +90,21 @@ public:
 
   std::string related_node_name() { return params_->related_node_name; }
 
-  Tensor& input(int index) { 
-    return params_->session_state->GetTensor(params_->input_name.at(index));
+  Tensor& input(int index) {
+    auto handle = params_->input_name.at(index);
+    auto* t = params_->session_state->GetTensor(handle);
+    CHECK(t != nullptr) << "handle '" << handle << "' not in session state.";
+    return *t;
+  }
+  
+  Tensor& output() {
+    auto handle = params_->node_def->name();
+    auto* t = params_->session_state->GetTensor(handle);
+    CHECK(t != nullptr) << "handle '" << handle << "' not in session state.";
+    return *t;
   }
 
-  Tensor& output() { 
-    return params_->session_state->GetTensor(params_->node_def->name());
-  }
-
-  Tensor& GetTensor(const std::string& name) {
+  Tensor* GetTensor(const std::string& name) {
     return params_->session_state->GetTensor(name);
   }
 
@@ -108,6 +114,8 @@ public:
 private:
   Params* params_;
 }; // class OpKernelContext
+
+typedef Eigen::ThreadPoolDevice CpuDevice;
 
 } // namespace openmi
 #endif // OPENMI_CORE_FRAMEWORK_OP_KERNEL_H_

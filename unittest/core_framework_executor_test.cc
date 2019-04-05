@@ -38,7 +38,12 @@ int main(int argc, char** argv) {
   x->set_shape(shape);
   x->Init();
   x->tensor<float, 2>().setConstant(0.2);
-  //LOG(INFO)  << "content of x:\n" << x->tensor<float, 2>();
+  //LOG(INFO)  << "content of x:\n" << x->tensor<float, 2>(); 
+  
+  Tensor* label = GetTensor(exec, "label");
+  TensorShape lshape("6,1");
+  label->AllocateTensor(lshape);
+  label->tensor<float, 2>().setConstant(1);
 
   auto matrix_x = ToEigenMatrix<float>(*x);
   //LOG(INFO) << "matrix_x:\n" << matrix_x << "\nrows:" << matrix_x.rows() << ", cols:" << matrix_x.cols();
@@ -57,6 +62,8 @@ int main(int argc, char** argv) {
   
   // y = 0.991998
   Status s = exec.Run();
+
+  LOG(DEBUG) << "done";
   
   /*
   auto vec_b = ToEigenVector<float>(*b);

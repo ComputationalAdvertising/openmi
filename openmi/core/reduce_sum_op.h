@@ -12,7 +12,7 @@ class ReduceSumGradOp : public UnaryOp<T, ReduceSumGradOp<Device, T>> {
 public:
   template <int NDIMS>
   void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
-    bool keep_dims = false;
+    bool keep_dims = true;
     Eigen::array<Eigen::DenseIndex, NDIMS> in_dims, out_dims, bcast_dims;
     ReshapeTensor<NDIMS>(in, in_dims);
     ReshapeTensor<NDIMS>(out, out_dims);
@@ -46,7 +46,7 @@ class ReduceSumOp : public UnaryOp<T, ReduceSumOp<Device, T>> {
 public:
   template <int NDIMS>
   void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
-    bool keep_dims = false; 
+    bool keep_dims = true; 
     int axis = NDIMS - 1;  // default
     Eigen::array<int, 1> depth_dim;
     depth_dim[0] = axis;

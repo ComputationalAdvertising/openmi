@@ -48,10 +48,10 @@ void MatMulOp<Device, T>::Compute(OpKernelContext* ctx) {
 
   if (!out.IsInitialized()) {
     TensorShape out_shape;
-    auto& related_node = ctx->GetTensor(ctx->related_node_name());
-    if (related_node.IsInitialized()) {
-      LOG(DEBUG) << "related initialized. shape: " << related_node.shape().DebugString();
-      out_shape = related_node.shape();
+    auto* related_node = ctx->GetTensor(ctx->related_node_name());
+    if (related_node != nullptr && related_node->IsInitialized()) {
+      LOG(DEBUG) << "related initialized. shape: " << related_node->shape().DebugString();
+      out_shape = related_node->shape();
     } else {
       int a_dim_remaining = 1 - dim_pair_[0].first;
       int b_dim_remaining = 1 - dim_pair_[0].second;

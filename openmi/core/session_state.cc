@@ -3,17 +3,17 @@
 namespace openmi {
 
 Status SessionState::GetTensor(const std::string& handle, Tensor** tensor) {
-  *tensor = &GetTensor(handle);
+  *tensor = GetTensor(handle);
   return Status::OK();
 }
 
-Tensor& SessionState::GetTensor(const std::string& handle) {
-  //LOG(DEBUG) << "handler: " << handle;
+Tensor* SessionState::GetTensor(const std::string& handle) {
   std::unique_lock<std::mutex> lock(mutex_);
   auto it = tensor_mapper_.find(handle);
-  CHECK(it != tensor_mapper_.end()) << " The Tensor with handle '" << handle 
-    << "' is not in the session state.";
-  return *it->second;
+  if (it == tensor_mapper_.end()) {
+    return nullptr;
+  }
+  return it->second;
 }
 
 Status SessionState::AddTensor(const std::string& handle, Tensor* tensor) {

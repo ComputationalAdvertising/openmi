@@ -12,7 +12,7 @@ class SessionState {
 public:
   Status GetTensor(const std::string& handle, Tensor** tensor);
 
-  Tensor& GetTensor(const std::string& handle);
+  Tensor* GetTensor(const std::string& handle);
 
   Status AddTensor(const std::string& handle, Tensor* tensor);
 

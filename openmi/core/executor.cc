@@ -7,7 +7,7 @@
 
 using namespace openmi;
 
-bool is_training = true;
+bool is_training = false;
 
 namespace openmi {
 
@@ -113,7 +113,8 @@ Executor::~Executor() {
 }
 
 Status Executor::Run() {
-  for (auto& node: g_.global_topo_nodes()) {
+  auto computed_nodes = is_training ? g_.global_topo_nodes() : g_.forward_topo_nodes();
+  for (auto& node: computed_nodes) {
     OpKernelConstruction okc(node->def().name(), node->attrs());
     node->op()->Initialize(&okc);
     

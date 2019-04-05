@@ -80,7 +80,6 @@ OPENMI_REGISTER_GRADIENT(Zeroslike, ZeroslikeGrad);
 
 // MatMul gradient
 void MatMulGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
-  LOG(INFO) << "MatMulGrad ...";
   std::string op("MatMul");
   auto x1_name = node.inputs().at(0);
   auto x2_name = node.inputs().at(1);
@@ -173,6 +172,13 @@ void AddGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_lis
   dx_list.push_back(dx2);
 }
 OPENMI_REGISTER_GRADIENT(Add, AddGrad);
+
+// Softmax gradient 
+void SoftmaxGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
+  LOG(DEBUG) << "SoftmaxGrad ...";
+}
+OPENMI_REGISTER_GRADIENT(Softmax, SoftmaxGrad);
+
 
 OPENMI_REGISTER_GRADIENT(Variable, OneslikeGrad);
 OPENMI_REGISTER_GRADIENT(Placeholder, OneslikeGrad);
