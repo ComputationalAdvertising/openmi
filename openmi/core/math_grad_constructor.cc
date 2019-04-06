@@ -211,6 +211,8 @@ void SigmoidCrossEntropyWithLogitsGrad(Node& node, std::vector<Node*>& dy_list, 
   auto x1_name = node.inputs().at(0);
   // logits
   auto x2_name = node.inputs().at(1);
+  // loss
+  auto y_name = node.def().name();
   // Oneslike(loss)
   auto dy_name = dy_list.at(0)->def().name();
 
@@ -222,12 +224,16 @@ void SigmoidCrossEntropyWithLogitsGrad(Node& node, std::vector<Node*>& dy_list, 
   dx_list.push_back(dx1);
 
   std::string dx2_node_name(x2_name + "_GradOp(" + dy_name + ")");
+  node.AddOutput(dx2_node_name);
+  LOG(DEBUG) << "node.name:" << y_name << ", node.output(0):" << node.outputs().at(0);
   proto::NodeDef ndef2;
   ndef2.set_name(dx2_node_name);
-  ndef2.set_op("sigmoid_cross_entropy_with_logits_grad");
+  //ndef2.set_op("sigmoid_cross_entropy_with_logits_grad");
+  ndef2.set_op("no_gradient");
   ndef2.add_input(x1_name);
   ndef2.add_input(x2_name);
   ndef2.add_input(dy_name);
+  ndef2.add_input(y_name);
   Node* dx2 = CreateGradNode(ndef2, g, x2_name, NC_OP, NS_REVERSE);
   dx_list.push_back(dx2);
 }

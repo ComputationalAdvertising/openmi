@@ -88,6 +88,7 @@ OPENMI_REGISTER_LINK_TAG(assign_op);
 OPENMI_REGISTER_LINK_TAG(matmul_op);
 OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
 OPENMI_REGISTER_LINK_TAG(oneslike_op);
+OPENMI_REGISTER_LINK_TAG(no_gradient_op);
 OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
 OPENMI_REGISTER_LINK_TAG(sigmoid_op);
 OPENMI_REGISTER_LINK_TAG(sigmoid_cross_entropy_with_logits);

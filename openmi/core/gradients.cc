@@ -10,15 +10,18 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
   std::vector<Node*> used_backward_output_nodes;
   for (Node* n: output_nodes) {
     bool used_backward = true;
-    GetAttr<bool>(n->attrs(), "used_backward", &used_backward, ::openmi::AttrValue::kBool);
+    GetAttr<bool>(n->attrs(), "used_backward", 
+                  &used_backward, ::openmi::AttrValue::kBool);
     if (!used_backward) {
-      LOG(WARN) << "sink node [" << n->def().name() << "] not need to back propagation.";
+      LOG(WARN) << "sink node [" << n->def().name() 
+        << "] not need to back propagation.";
       continue;
     }
 
     used_backward_output_nodes.push_back(n);
   }
 
+  // Oneslike for sink node that used backward
   for (Node* n: used_backward_output_nodes) {
     std::vector<Node*>* n_grad_list = new std::vector<Node*>();
 
@@ -28,7 +31,6 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
     proto::NodeDef grad_node_def;
     grad_node_def.set_name(grad_node_name);
     grad_node_def.set_op(op);
-    grad_node_def.add_input(y_name);
     NodeInfo grad_ninfo(grad_node_def, -1, NC_SOURCE, NS_REVERSE);
 
     Node* grad_n = g->CreateNode(grad_ninfo, *n);
@@ -38,6 +40,7 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
     node_to_grads_list_mapper_.insert({n, n_grad_list});
   }
 
+  // Topo order list for node that compute gradient
   LOG(INFO) << "\n ------------------- gradients find topo sort --------------------";
   if (TopoOrderList(used_backward_output_nodes, topo_order_list_, g) != 0) {
     LOG(ERROR) << "get topo order list failed.";
@@ -46,6 +49,8 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
 
   LOG(INFO) << "\n ------------------- generate grad node list --------------------";
   LOG(INFO) << "topo_order_list_.size: " << topo_order_list_.size();
+
+  // Create gradient node from sink to source by GradConstructor
   for (int i = topo_order_list_.size() - 1; i >= 0; i--) {
     LOG(INFO) << "i: " << i;
     Node* n = topo_order_list_.at(i);
@@ -56,17 +61,20 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
     CHECK(grad_node != nullptr) << " gradient node is null. n.name: " << n->def().name();
     LOG(INFO) << "------> node:" << n->def().name() << ", it grad node: " << grad_node->def().name();
     node_to_output_grad_mapper_.insert({n, grad_node});
+    
     std::vector<Node*> dy;
     dy.push_back(grad_node);
     std::vector<Node*> dx_list;
  
-    // GradientOp 初始化dx_list 
     GradConstructor grad_constructor;
     GradientRegistry::Instance().Lookup(n->def().op(), &grad_constructor);
     grad_constructor(*n, dy, dx_list, *g);
 
     LOG(INFO) << "its input size: " << n->inputs().size();
-    for (int j = 0; j< n->inputs().size(); ++j) {
+    if (n->outputs().size() > 0) {
+      LOG(DEBUG) << "n.outputs[0]: " << n->outputs().at(0);
+    }
+    for (int j = 0; j < n->inputs().size(); ++j) {
       Node* nj = g->FindNode(n->inputs().at(j));
       LOG(INFO) << "nj: " << nj->def().name();
       std::vector<Node*>* nj_grad_list;

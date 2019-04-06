@@ -96,11 +96,14 @@ Executor::Executor(proto::GraphDef& gdef) {
     FindSinkNodes(g_, g_.global_sink_nodes());
     for (int i = 0; i < g_.global_sink_nodes().size(); ++i) {
       LOG(DEBUG) << "global sink nodes i: " << i << ", node: " << g_.global_sink_nodes().at(i)->def().name();
+      if (g_.global_sink_nodes().at(i)->outputs().size() > 0) {
+        LOG(DEBUG) << "outputs(0): " << g_.global_sink_nodes().at(i)->outputs().at(0);
+      }
     }
     TopoOrderList(g_.global_sink_nodes(), g_.global_topo_nodes(), &g_);
   
     for (int i = 0; i < g_.global_topo_nodes().size(); ++i) {
-      LOG(DEBUG) << "reversed topo node. i: " << i << ", node:" << g_.global_topo_nodes().at(i)->def().name();
+      LOG(DEBUG) << "global topo node. i: " << i << ", node:" << g_.global_topo_nodes().at(i)->def().name();
     }
   }
 
@@ -113,7 +116,7 @@ Executor::~Executor() {
 }
 
 Status Executor::Run() {
-  auto computed_nodes = is_training ? g_.global_topo_nodes() : g_.forward_topo_nodes();
+  auto& computed_nodes = is_training ? g_.global_topo_nodes() : g_.forward_topo_nodes();
   for (auto& node: computed_nodes) {
     OpKernelConstruction okc(node->def().name(), node->attrs());
     node->op()->Initialize(&okc);
@@ -131,6 +134,10 @@ Status Executor::Run() {
     params.input_name = node->inputs();
     params.output_name = node->outputs();
     params.related_node_name = node->node_info().related_node_name;
+
+    if (node->outputs().size() > 0) {
+      LOG(DEBUG) << "output_at0: " << node->outputs().at(0) << ", node:" << node->def().name();
+    }
 
     LOG(INFO) << "node.name: [" << node->def().name() << "], op: " << node->def().op() << ", related_node: " << node->node_info().related_node_name;
     OpKernelContext* ctx = new OpKernelContext(&params);
