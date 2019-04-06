@@ -94,14 +94,12 @@ Node* Graph::FindNode(const std::string& node_name) {
 Node* Graph::AllocateNode(NodeInfo& ninfo) {
   Node* node = nullptr;
   if (free_nodes_.empty()) {
-    LOG(INFO) << "AllocateNode ninfo: " << ninfo.node_def.name();
     node = new Node;
   } else {
     node = free_nodes_.back();
     free_nodes_.pop_back();
   }
 
-  LOG(INFO) << "AllocateNode ninfo: " << ninfo.node_def.name();
   node->graph_ = this;
   ninfo.id = nodes_.size();
   node->Initialize(ninfo);

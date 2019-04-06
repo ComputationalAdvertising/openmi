@@ -2,18 +2,33 @@
 #include "algorithm.h"
 #include "op_registry.h"
 #include "gradient_registry.h"
+#include "attr_value_utils.h"
 
 namespace openmi {
 
 int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& input_nodes, std::vector<Node*>& reversed_node_list, Graph* g) {
+  std::vector<Node*> used_backward_output_nodes;
   for (Node* n: output_nodes) {
+    bool used_backward = true;
+    GetAttr<bool>(n->attrs(), "used_backward", &used_backward, ::openmi::AttrValue::kBool);
+    if (!used_backward) {
+      LOG(WARN) << "sink node [" << n->def().name() << "] not need to back propagation.";
+      continue;
+    }
+
+    used_backward_output_nodes.push_back(n);
+  }
+
+  for (Node* n: used_backward_output_nodes) {
     std::vector<Node*>* n_grad_list = new std::vector<Node*>();
 
-    std::string op_name("Oneslike");
-    std::string grad_node_name(op_name + "(" + n->def().name() + ")");
+    auto y_name = n->def().name();
+    std::string op("Oneslike");
+    std::string grad_node_name(op + "(" + y_name + ")");
     proto::NodeDef grad_node_def;
     grad_node_def.set_name(grad_node_name);
-    grad_node_def.set_op(op_name);
+    grad_node_def.set_op(op);
+    grad_node_def.add_input(y_name);
     NodeInfo grad_ninfo(grad_node_def, -1, NC_SOURCE, NS_REVERSE);
 
     Node* grad_n = g->CreateNode(grad_ninfo, *n);
@@ -24,7 +39,7 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
   }
 
   LOG(INFO) << "\n ------------------- gradients find topo sort --------------------";
-  if (TopoOrderList(output_nodes, topo_order_list_, g) != 0) {
+  if (TopoOrderList(used_backward_output_nodes, topo_order_list_, g) != 0) {
     LOG(ERROR) << "get topo order list failed.";
     return -1;
   }

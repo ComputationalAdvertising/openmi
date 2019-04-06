@@ -101,4 +101,14 @@ public:
 #define OPENMI_REGISTER_OP_KERNEL(name, ...) \
   OPENMI_REGISTER_KERNEL_UNIQ(name, __COUNTER__).op_kernel<__VA_ARGS__>() 
 
+#define OPENMI_REGISTER_OP_KERNEL_WITH_CPU_TYPE(name, sub_op, T) \
+  OPENMI_REGISTER_OP_KERNEL(name, sub_op<CpuDevice, T>) \
+    .Device("CPU") \
+    .TypeConstraint<T>(); 
+
+#define OPENMI_REGISTER_OP_KERNEL_CPU(name, op) \
+  OPENMI_REGISTER_OP_KERNEL_WITH_CPU_TYPE(name, op, float) \
+  OPENMI_REGISTER_OP_KERNEL_WITH_CPU_TYPE(name, op, double) \
+  OPENMI_REGISTER_OP_KERNEL_WITH_CPU_TYPE(name, op, int)
+
 #endif // OPENMI_CORE_FRAMEWORK_OP_REGESTRY_H_

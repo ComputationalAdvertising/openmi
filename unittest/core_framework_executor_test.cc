@@ -44,6 +44,14 @@ int main(int argc, char** argv) {
   TensorShape lshape("6,1");
   label->AllocateTensor(lshape);
   label->tensor<float, 2>().setConstant(1);
+  /*
+  label->tensor<float, 2>()(0, 1) = 0;
+  label->tensor<float, 2>()(1, 1) = 0;
+  label->tensor<float, 2>()(2, 1) = 0;
+  label->tensor<float, 2>()(3, 1) = 0;
+  label->tensor<float, 2>()(4, 1) = 0;
+  label->tensor<float, 2>()(5, 1) = 0;
+  */
 
   auto matrix_x = ToEigenMatrix<float>(*x);
   //LOG(INFO) << "matrix_x:\n" << matrix_x << "\nrows:" << matrix_x.rows() << ", cols:" << matrix_x.cols();

@@ -66,6 +66,7 @@ void SigmoidGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx
   dx_list.push_back(dx);
 }
 OPENMI_REGISTER_GRADIENT(Sigmoid, SigmoidGrad);
+OPENMI_REGISTER_GRADIENT(sigmoid, SigmoidGrad);
 
 // Oneslike gradient
 void OneslikeGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
@@ -74,7 +75,7 @@ void OneslikeGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& d
 OPENMI_REGISTER_GRADIENT(Oneslike, OneslikeGrad);
 
 void ZeroslikeGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) { 
-  LOG(DEBUG) << "OneslikeGrad ...";
+  LOG(DEBUG) << "ZeroslikeGrad ...";
 }
 OPENMI_REGISTER_GRADIENT(Zeroslike, ZeroslikeGrad);
 
@@ -176,9 +177,61 @@ OPENMI_REGISTER_GRADIENT(Add, AddGrad);
 // Softmax gradient 
 void SoftmaxGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   LOG(DEBUG) << "SoftmaxGrad ...";
+  // logits
+  auto x1_name = node.inputs().at(0);
+  auto dy_name = dy_list.at(0)->def().name();
+  auto dy_input_name = dy_list.at(0)->inputs().at(0);
+  auto dy_input_node = g.FindNode(dy_input_name);
+  // TODO 
+  LOG(DEBUG) << "dy_name: " << dy_name << ", dy_input_name:" << dy_input_name;
 }
 OPENMI_REGISTER_GRADIENT(Softmax, SoftmaxGrad);
 
+
+// Softmax Cross Entropy with Logits
+void SoftmaxCrossEntropyWithLogitsGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
+  LOG(DEBUG) << "softmax cross entropy gradient ...";
+  // labels 
+  auto x1_name = node.inputs().at(0);
+  // logits
+  auto x2_name = node.inputs().at(1); 
+  // softmax_cross_entropy 
+  auto y_name = node.def().name();
+  // oneslike(1)
+  auto dy_name = dy_list.at(0)->def().name();
+
+  std::string op("softmax_cross_entropy_with_logits_grad");
+  std::string dx2_node_name(x2_name + "_GradOp(" + dy_name + ")");
+}
+OPENMI_REGISTER_GRADIENT(softmax_cross_entropy_with_logits, SoftmaxCrossEntropyWithLogitsGrad);
+
+void SigmoidCrossEntropyWithLogitsGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
+  LOG(DEBUG) << "sigmoid cross entropy gradient ...";
+  // labels
+  auto x1_name = node.inputs().at(0);
+  // logits
+  auto x2_name = node.inputs().at(1);
+  // Oneslike(loss)
+  auto dy_name = dy_list.at(0)->def().name();
+
+  std::string dx1_node_name(x1_name + "_GradOp(" + dy_name + ")");
+  proto::NodeDef ndef1;
+  ndef1.set_name(dx1_node_name);
+  ndef1.set_op("Oneslike");
+  Node* dx1 = CreateGradNode(ndef1, g, x1_name, NC_OP, NS_REVERSE);
+  dx_list.push_back(dx1);
+
+  std::string dx2_node_name(x2_name + "_GradOp(" + dy_name + ")");
+  proto::NodeDef ndef2;
+  ndef2.set_name(dx2_node_name);
+  ndef2.set_op("sigmoid_cross_entropy_with_logits_grad");
+  ndef2.add_input(x1_name);
+  ndef2.add_input(x2_name);
+  ndef2.add_input(dy_name);
+  Node* dx2 = CreateGradNode(ndef2, g, x2_name, NC_OP, NS_REVERSE);
+  dx_list.push_back(dx2);
+}
+OPENMI_REGISTER_GRADIENT(sigmoid_cross_entropy_with_logits, SigmoidCrossEntropyWithLogitsGrad);
 
 OPENMI_REGISTER_GRADIENT(Variable, OneslikeGrad);
 OPENMI_REGISTER_GRADIENT(Placeholder, OneslikeGrad);

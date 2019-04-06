@@ -104,6 +104,13 @@ public:
     return *t;
   }
 
+  Tensor& output(int index) {
+    auto handle = params_->output_name.at(index);
+    auto* t = params_->session_state->GetTensor(handle);
+    CHECK(t != nullptr) << " handle '" << handle << "' not in session_state.";
+    return *t;
+  }
+
   Tensor* GetTensor(const std::string& name) {
     return params_->session_state->GetTensor(name);
   }

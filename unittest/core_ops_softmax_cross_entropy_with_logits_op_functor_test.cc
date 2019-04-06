@@ -3,7 +3,7 @@
 #include "base/logging.h"
 #include "base/register.h"
 #include "softmax_op_functor.h"
-#include "softmax_cross_entropy_with_logits_op_functor.h"
+#include "cross_entropy_op_functor.h"
 #include "op_kernel.h"
 #include "device_registry.h"
 

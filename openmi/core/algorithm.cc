@@ -30,6 +30,7 @@ int TopoOrderList(std::vector<Node*>& node_list, std::vector<Node*>& topo_order_
   int count = 0;
   for (size_t i = 0; i < node_list.size(); ++i) {
     Node* node = node_list[i];
+
     if (DFS(node, visited, topo_order_list, g) != 0) {
       LOG(ERROR) << "DFS error.";
       return -1;

@@ -7,12 +7,12 @@
 
 using namespace openmi;
 
-bool is_training = false;
+bool is_training = true;
 
 namespace openmi {
 
 // 出度为0的node
-void FindSinkNodes(Graph& g, std::vector<Node*>& sink_nodes) {
+void FindSinkNodes(Graph& g, std::vector<Node*>& sink_nodes, bool used_back_props = false) {
   // find output nodes 
   std::set<std::string> exist_outputs;
   std::set<std::string> all_node_keys;

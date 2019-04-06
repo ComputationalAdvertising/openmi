@@ -51,6 +51,7 @@ inline proto::AttrValue* attr_shape(std::vector<int> dims) {
   return attr;
 }
 
+// only used to get 'bool' attr
 template <typename T>
 inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, 
              const std::string& key, 
@@ -58,7 +59,7 @@ inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr,
              AttrValue::AttrType attr_type) {
   auto it = attr.find(key);
   if (it != attr.end()) {
-    CHECK(it->second.attr_type = attr_type);
+    CHECK(it->second.attr_type == attr_type);
     *value = it->second.b;
   }
 }
