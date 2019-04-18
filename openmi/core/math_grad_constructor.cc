@@ -1,45 +1,11 @@
 #include "gradient_registry.h"
+#include "graph_utils.h"
 #include "attr_value_utils.h"
 #include "base/logging.h"
 #include "base/register.h"
 
 namespace openmi {
 
-Node* CreateGradNode(proto::NodeDef& ndef, Graph& g, const std::string& related_node_name, NodeClass nc = NC_OP, NodeScope ns = NS_REVERSE) {
-  Node* related_node = g.FindNode(related_node_name);
-  CHECK(related_node != nullptr) << related_node_name << " not in graph.";
-  NodeInfo ninfo(ndef, -1, nc, ns);
-  Node* grad_node = g.GetOrCreateNode(ninfo, *related_node);
-  CHECK(grad_node != nullptr) 
-    << "gradient node create failed. name:" << ndef.name()
-    << ", op:" << ndef.op();
-
-  // fill gradient node input 
-  for (size_t i = 0; i < ndef.input().size(); ++i) {
-    auto input = ndef.input(i);
-    Node* n = g.FindNode(input);
-    CHECK(n != nullptr) << input << " not in graph. please check it.";
-    grad_node->AddInput(input);
-  }
-  return grad_node;
-}
-
-Node* CreateGradNode(const std::string& node_name, const std::string& op, 
-                     Graph& g, const std::string& related_node_name, 
-                     NodeClass nc = NC_OP, NodeScope ns = NS_REVERSE) {
-  LOG(DEBUG) << "grad node name:" << node_name << ", op:" << op;
-  Node* related_node = g.FindNode(related_node_name);
-  CHECK(related_node != nullptr) << related_node_name << " not in graph.";
-  proto::NodeDef ndef;
-  ndef.set_name(node_name);
-  ndef.set_op(op);
-  NodeInfo ninfo(ndef, -1, nc, ns);
-  Node* grad_node = g.GetOrCreateNode(ninfo, *related_node);
-  CHECK(grad_node != nullptr) 
-    << "gradient node create failed. name:" << node_name 
-    << ", op:" << op;
-  return grad_node;
-}
 
 // ReduceSum gradient
 void ReduceSumGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {

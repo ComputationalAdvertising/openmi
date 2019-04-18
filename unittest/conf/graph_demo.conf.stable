@@ -5,6 +5,11 @@ node {
   device: "CPU"
 }
 node {
+  name: "label"
+  op: "Placeholder"
+  device: "CPU"
+}
+node {
   name: "b"
   op: "Variable"
   device: "CPU"
@@ -70,9 +75,40 @@ node {
   }
 }
 node {
-  name: "y"
-  op: "Sigmoid"
+  name: "reduce_sum_z"
+  op: "ReduceSum"
   input: "z"
+  device: "CPU"
+  attr {
+    key: "row_major"
+    value {
+      b: True
+    }
+  }
+}
+node {
+  name: "y"
+  op: "sigmoid"
+  input: "reduce_sum_z"
+  device: "CPU"
+  attr {
+    key: "row_major"
+    value {
+      b: True
+    }
+  }
+  attr {
+    key: "used_backward"
+    value {
+      b: False
+    }
+  }
+}
+node {
+  name: "loss"
+  op: "sigmoid_cross_entropy_with_logits"
+  input: "label"
+  input: "reduce_sum_z"
   device: "CPU"
   attr {
     key: "row_major"

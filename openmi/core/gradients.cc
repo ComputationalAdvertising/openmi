@@ -2,6 +2,7 @@
 #include "algorithm.h"
 #include "op_registry.h"
 #include "gradient_registry.h"
+#include "graph_utils.h"
 #include "attr_value_utils.h"
 
 namespace openmi {
@@ -106,6 +107,7 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
   return 0;
 }
 
+// multiply gradient nodes accumulate sum op
 Node* Gradients::SumGradients(std::vector<Node*>& node_list, Graph* g) {
   if (node_list.empty()) {
     LOG(ERROR) << "node_list is empty.";
@@ -120,35 +122,27 @@ Node* Gradients::SumGradients(std::vector<Node*>& node_list, Graph* g) {
     return node_list[0];
   }
 
-  // TODO tmp for test
-  std::string op("Add"); // TODO Add -> ReduceSum 
-  std::string node_name("sum_gradient(" + node_list.at(0)->def().name() + ")");
   proto::NodeDef grad_node_def;
-  grad_node_def.set_name(node_name);
+  std::string op("accumulate_n");
   grad_node_def.set_op(op);
-  NodeInfo grad_ninfo(grad_node_def, -1, NC_OP, NS_REVERSE);
   
-  Node* grad_node = g->GetOrCreateNode(grad_ninfo, *node_list.at(0));
-  return grad_node;
-  
-  /*
-  // TODO 修改为ReduceSum not Add
-  std::string op_name("Add");
-  Node* prev_node = node_list.at(0);
-  Node* result = nullptr;
-  for (size_t i = 1; i < node_list.size(); ++i) {
-    Node* cur_node = node_list.at(i);
-    std::string node_name("(" + prev_node->def().name() + "+" + cur_node->def().name() + ")");
-    Node* grad_node = g->GetOrCreateNode(node_name, op_name, prev_node->def(), NC_OP, NS_REVERSE);
-    CHECK(grad_node != nullptr) << " create reverse node failed. name:" << node_name;
-    grad_node->AddInput(prev_node->def().name());
-    grad_node->AddInput(cur_node->def().name());
+  auto in0_name = node_list.at(0)->def().name();
+  grad_node_def.add_input(in0_name);
 
-    result = grad_node;
-    prev_node = grad_node;
+  std::string node_name(op + "_gradient(" + in0_name);
+  for (auto i = 1; i < node_list.size(); ++i) {
+    auto cur_node_name = node_list.at(i)->def().name();
+    node_name += "+" + cur_node_name;
+    grad_node_def.add_input(cur_node_name);
   }
-  return result;
-  */
+  node_name += ")";
+
+  LOG(DEBUG) << "accumulate_n node name: " << node_name;
+  
+  grad_node_def.set_name(node_name);
+
+  Node* grad_node = CreateGradNode(grad_node_def, *g, in0_name); 
+  return grad_node;
 }
 
 } // namespace openmi

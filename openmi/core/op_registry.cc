@@ -77,6 +77,7 @@ OpRegistryHelper& OpRegistryHelper::TypeConstraint(DataType type) {
   return *this;
 }
 
+OPENMI_REGISTER_LINK_TAG(accumulate_n_op);
 OPENMI_REGISTER_LINK_TAG(binary_add_op);
 OPENMI_REGISTER_LINK_TAG(binary_sub_op);
 OPENMI_REGISTER_LINK_TAG(binary_mul_op);
