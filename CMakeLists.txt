@@ -12,6 +12,7 @@ include_directories(
   $ENV{DEPS_ENV_HOME}/include  
   $ENV{DEPS_ENV_HOME}/include/eigen3
   ${PROJECT_SOURCE_DIR}/../openmi-base
+  ${PROJECT_SOURCE_DIR}/../openmi-base/base
   ${PROJECT_SOURCE_DIR}/../openmi-idl
   ${PROJECT_SOURCE_DIR}/openmi
   ${PROJECT_SOURCE_DIR}/openmi/core

@@ -1,5 +1,4 @@
 #include "numeric_op.h"
-#include "accumulate_n_functor.h"
 
 namespace openmi {
 
