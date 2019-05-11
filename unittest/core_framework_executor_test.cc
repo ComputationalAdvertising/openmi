@@ -33,41 +33,43 @@ int main(int argc, char** argv) {
 
   Executor exec(gdef);
 
+  const int rank = 2;
+
+  LOG(INFO) << "================= [x] ================= \n";
   Tensor* x = GetTensor(exec, "x");
   TensorShape shape("6,8");
   x->set_shape(shape);
   x->Init();
-  x->tensor<float, 2>().setConstant(0.2);
-  //LOG(INFO)  << "content of x:\n" << x->tensor<float, 2>(); 
+  x->tensor<float, rank>().setConstant(0.2);
+  DLOG(INFO)  << "Variable(x):\n" << x->tensor<float, 2>(); 
+  //auto matrix_x = ToEigenMatrix<float>(*x);
+  auto matrix_x = x->ToEigenMatrix<float>();
+  DLOG(INFO) << "Matrix[x]:\n" << matrix_x << "\trows:" << matrix_x.rows() << ", cols:" << matrix_x.cols();
   
+  LOG(INFO) << "================= [label] ================= \n";
   Tensor* label = GetTensor(exec, "label");
   TensorShape lshape("6,1");
   label->AllocateTensor(lshape);
-  label->tensor<float, 2>().setConstant(1);
-  /*
-  label->tensor<float, 2>()(0, 1) = 0;
-  label->tensor<float, 2>()(1, 1) = 0;
-  label->tensor<float, 2>()(2, 1) = 0;
-  label->tensor<float, 2>()(3, 1) = 0;
-  label->tensor<float, 2>()(4, 1) = 0;
-  label->tensor<float, 2>()(5, 1) = 0;
-  */
+  label->tensor<float, rank>().setConstant(1);
+  label->tensor<float, rank>()(0, 0) = 0;
+  label->tensor<float, rank>()(2, 0) = 0;
+  label->tensor<float, rank>()(4, 0) = 0;
 
-  auto matrix_x = ToEigenMatrix<float>(*x);
-  //LOG(INFO) << "matrix_x:\n" << matrix_x << "\nrows:" << matrix_x.rows() << ", cols:" << matrix_x.cols();
-
+  LOG(INFO) << "================= [w] ================= \n";
   Tensor* w = GetTensor(exec, "w");
-  w->tensor<float, 2>().setConstant(0.3);
-  //LOG(INFO)  << "content of w:\n" << w->tensor<float, 2>();
+  w->tensor<float, rank>().setConstant(0.3);
+  DLOG(INFO)  << "Variable(w):\n" << w->tensor<float, rank>();
 
   auto matrix_w = ToEigenMatrix<float>(*w);
-  //LOG(INFO) << "matrix_w:\n" << matrix_w << "\nrows:" << matrix_w.rows() << ", cols:" << matrix_w.cols();
+  DLOG(INFO) << "matrix_w:\n" << matrix_w << "\trows:" << matrix_w.rows() << ", cols:" << matrix_w.cols();
 
+  LOG(INFO) << "================= [b] ================= \n";
   Tensor* b = GetTensor(exec, "b");
-  LOG(INFO) << "b: " << b->shape().DebugString();
+  LOG(INFO) << "TensorShape(b): " << b->shape().DebugString();
   b->vec<float>().setConstant(0.002);
-  //LOG(INFO) << "content of b:\n" << b->vec<float>();
+  DLOG(INFO) << "Variable(b):\n" << b->vec<float>();
   
+  LOG(INFO) << "================= [exec.run] ================= \n";
   // y = 0.991998
   Status s = exec.Run();
 

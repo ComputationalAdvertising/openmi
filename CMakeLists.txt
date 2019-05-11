@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 2.4)
 
-project(openmi-mix)
+project(openmi-core)
 
 set(CMAKE_VERBOSE_MAKEFILE on)
 
 set(BASIC_CXXFLAGS "-std=c++11 -g -O3 -Wall -fPIC")
-set(BASIC_CPPDEFINES "-DNDEBUG -DHAVE_NETINET_IN_H") 
+set(BASIC_CPPDEFINES "-DHAVE_NETINET_IN_H") 
 set(CMAKE_CXX_FLAGS "${BASIC_CXXFLAGS} ${BASIC_CPPDEFINES} -DEIGEN_USE_THREADS")
 
 include_directories(
@@ -38,7 +38,6 @@ set(STATIC_LINKER_FLAGS "-Wl,-Bstatic ${DEPS_WHOLE_ARCHIVE_LIBRARIES} ${DEPS_STA
 set(SHARED_LINKER_FLAGS "-Wl,-Bdynamic ${DEPS_SHARED_LIBRARIES}")
 set(DYNAMIC_LINKER "-Wl,--dynamic-linker=${DEPS_DYNAMIC_LINKER}")
 set(summary_linker_flags "${STATIC_LINKER_FLAGS} ${SHARED_LINKER_FLAGS} ${DYNAMIC_LINKER}")
-
 
 add_subdirectory(openmi)
 add_subdirectory(unittest) 

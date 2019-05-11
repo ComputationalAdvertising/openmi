@@ -148,6 +148,7 @@ public:
   void AllocateTensor(TensorShape& shape) {
     set_shape(shape);
     if (alloc_ == nullptr) {
+      DLOG(INFO) << "alloc_ is null. reset it.";
       alloc_.reset(cpu_allocator());
     }
     size_t size = shape_.NumElements() * SizeOfType(type_);

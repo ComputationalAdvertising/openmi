@@ -29,7 +29,7 @@ public:
     depth_dim[0] = axis;
 
     auto d = context->eigen_device<Device>();
-    Y.device(d) = X.sum(depth_dim);
+    Y.device(d) = X.sum(depth_dim).eval().reshape(out_dims);
 
     LOG(DEBUG) << context->name() << ", Y:\n" << Y;
   }

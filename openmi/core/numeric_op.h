@@ -6,6 +6,8 @@
 
 namespace openmi {
 
+#define NAME(code) #code
+
 /*!
  * \brief Unary op. it requires at least one input
  */ 
@@ -18,7 +20,7 @@ public:
     
     Tensor& in = context->input(0);
     Tensor& out = context->output();
-    LOG(DEBUG) << "in.name: " << context->inputs().at(0) << ", out.name: " << context->name() << ", related_node: " << context->related_node_name();
+
     if (!out.IsInitialized()) {
       LOG(DEBUG) << "not initialized";
       TensorShape out_shape;
@@ -28,9 +30,10 @@ public:
       } else {
         out_shape = in.shape();
       }
+      DLOG(INFO) << "in.name: " << context->inputs().at(0) << ", out.name: " << context->name() << ", related_node[" << context->related_node_name()
+               << "], out_shape[" << out_shape.DebugString() << "]";
       out.AllocateTensor(out_shape);
     }
-
     size_t max_dims = std::max(in.shape().Dims(), out.shape().Dims());
     switch (max_dims) {
 #define NDIM_CASE(NDIMS)  \

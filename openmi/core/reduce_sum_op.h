@@ -28,6 +28,8 @@ public:
     Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> X(in.Base<T>(), in_dims);
     Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> Y(out.Base<T>(), out_dims);
 
+    DLOG(INFO) << "X:\n" << X << "\tshape:" << in.shape().DebugString();
+    
     auto d = context->template eigen_device<Device>();
     if (is_bcast) {
       Y.device(d) = X.broadcast(bcast_dims);
@@ -35,8 +37,8 @@ public:
       Y.device(d) = X;
     }
     
-    LOG(DEBUG) << "in: " << in.shape().DebugString() << ", value:\n" << X;
-    LOG(DEBUG) << "out: " << out.shape().DebugString() << ", value:\n" << Y;
+    
+    DLOG(INFO) << "Y:\n" << Y << "\tshape: " << out.shape().DebugString();
   }
 }; // class ReduceSumGradOp
 
@@ -53,10 +55,10 @@ public:
 
     if (in.shape().IsSameSize(out.shape())) {
       size_t out_rank_size = out.shape().Dims();
-      if (!keep_dims) {
-        out.shape().DeleteDim(out_rank_size - 1);
-      } else {
+      if (keep_dims) {
         out.shape().SetDim(out_rank_size - 1, 1);
+      } else {
+        out.shape().DeleteDim(out_rank_size - 1);
       }
       out.ReallocateTensor(out.shape());
     }
@@ -68,23 +70,14 @@ public:
     Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> X(in.Base<T>(), in_dims);
     Eigen::TensorMap<Eigen::Tensor<T, NDIMS>> Y(out.Base<T>(), out_dims);
 
-    auto d = context->template eigen_device<Device>();
-    Y.device(d) = X.sum(depth_dim);
+    DLOG(INFO) << "X:\n" << X << "\tshape:" << in.shape().DebugString();
 
-    LOG(DEBUG) << "Y: " << out.shape().DebugString() << "\nvalue:\n" << Y;
+    auto d = context->template eigen_device<Device>();
+    Y.device(d) = X.sum(depth_dim).eval().reshape(out_dims);
+
+    DLOG(INFO) << "Y:\n" << Y << "\tshape: " << out.shape().DebugString();
   }
 }; // class ReduceSumOp
 
 } // namespace openmi
-
-#define OPENMI_REGISTER_REDUCE_SUM_OP_UNIQ(T) \
-  OPENMI_REGISTER_OP_KERNEL(ReduceSum, ::openmi::UnaryOp<T, ::openmi::ReduceSumOp<CpuDevice, T>>) \
-  .Device("CPU") \
-  .TypeConstraint<T>(); 
-
-#define OPENMI_REGISTER_REDUCE_SUM_OP() \
-  OPENMI_REGISTER_REDUCE_SUM_OP_UNIQ(float) \
-  OPENMI_REGISTER_REDUCE_SUM_OP_UNIQ(double) \
-  OPENMI_REGISTER_REDUCE_SUM_OP_UNIQ(int)
-
 #endif // OPENMI_CORE_OPS_REDUCE_SUM_OP_H_

@@ -41,23 +41,23 @@ void MatMulOp<Device, T>::Compute(OpKernelContext* ctx) {
   auto X0 = in0.matrix<T>();
   auto X1 = in1.matrix<T>();
 
-  LOG(DEBUG) << "in0: " << ctx->inputs().at(0) << ", transpose:" << transpose_a_ 
+  DLOG(INFO) << "in0: " << ctx->inputs().at(0) << ", transpose:" << transpose_a_ 
     << ", shape:" << in0.shape().DebugString() << ", value:\n" << X0;
-  LOG(DEBUG) << "in1: " << ctx->inputs().at(1) << ", transpose:" << transpose_b_ 
+  DLOG(INFO) << "in1: " << ctx->inputs().at(1) << ", transpose:" << transpose_b_ 
     << ", shape:" << in1.shape().DebugString() << ", value:\n" << X1;
 
   if (!out.IsInitialized()) {
     TensorShape out_shape;
     auto* related_node = ctx->GetTensor(ctx->related_node_name());
     if (related_node != nullptr && related_node->IsInitialized()) {
-      LOG(DEBUG) << "related initialized. shape: " << related_node->shape().DebugString();
+      DLOG(INFO) << "related initialized. shape: " << related_node->shape().DebugString();
       out_shape = related_node->shape();
     } else {
       int a_dim_remaining = 1 - dim_pair_[0].first;
       int b_dim_remaining = 1 - dim_pair_[0].second;
       out_shape.AddDim(in0.shape().DimSize(a_dim_remaining));
       out_shape.AddDim(in1.shape().DimSize(b_dim_remaining));
-      LOG(DEBUG) << "out shape: " << out_shape.DebugString();
+      DLOG(INFO) << "out shape: " << out_shape.DebugString();
     }
 
     out.AllocateTensor(out_shape);

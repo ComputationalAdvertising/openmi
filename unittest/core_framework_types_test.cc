@@ -30,6 +30,7 @@ std::string DataTypeString(DataType dtype) {
 
 int main() {
   printf("DF_FLOAT: %s\n", DataTypeString(DT_FLOAT).c_str());
+  printf("DF_FLOAT: %s\n", DataType_Name(DT_FLOAT).c_str());
   printf("DF_DOUBLE: %s\n", DataTypeString(DT_DOUBLE).c_str());
   std::string r = DataTypeString(DT_INT8);
   printf("DT_INT8: %s\n", r.c_str());
