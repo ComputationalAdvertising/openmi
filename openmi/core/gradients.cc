@@ -11,11 +11,10 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
   std::vector<Node*> used_backward_output_nodes;
   for (Node* n: output_nodes) {
     bool used_backward = true;
-    GetAttr<bool>(n->attrs(), "used_backward", 
-                  &used_backward, ::openmi::AttrValue::kBool);
+    GetAttr<bool>(n->attrs(), "used_backward", &used_backward, ::openmi::AttrValue::kBool);
     if (!used_backward) {
       LOG(WARN) << "sink node [" << n->def().name() 
-        << "] not need to back propagation.";
+                << "] not need to back propagation.";
       continue;
     }
 
@@ -53,14 +52,13 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
 
   // Create gradient node from sink to source by GradConstructor
   for (int i = topo_order_list_.size() - 1; i >= 0; i--) {
-    LOG(INFO) << "i: " << i;
     Node* n = topo_order_list_.at(i);
-    LOG(DEBUG) << "n.name: " << n->def().name();
+    DLOG(INFO) << "n.name: " << n->def().name();
     std::vector<Node*>* n_grad_list = node_to_grads_list_mapper_[n];
     CHECK(n_grad_list != nullptr) << "grad list is null. node:" << n->def().name();
     Node* grad_node = SumGradients(*n_grad_list, g);
     CHECK(grad_node != nullptr) << " gradient node is null. n.name: " << n->def().name();
-    LOG(INFO) << "------> node:" << n->def().name() << ", it grad node: " << grad_node->def().name();
+    DLOG(INFO) << "------> node:" << n->def().name() << ", it grad node: " << grad_node->def().name();
     node_to_output_grad_mapper_.insert({n, grad_node});
     
     std::vector<Node*> dy;
@@ -71,13 +69,12 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
     GradientRegistry::Instance().Lookup(n->def().op(), &grad_constructor);
     grad_constructor(*n, dy, dx_list, *g);
 
-    LOG(INFO) << "its input size: " << n->inputs().size();
+    DLOG(INFO) << "its input size: " << n->inputs().size();
     if (n->outputs().size() > 0) {
-      LOG(DEBUG) << "n.outputs[0]: " << n->outputs().at(0);
+      DLOG(INFO) << "n.outputs[0]: " << n->outputs().at(0);
     }
     for (int j = 0; j < n->inputs().size(); ++j) {
       Node* nj = g->FindNode(n->inputs().at(j));
-      LOG(INFO) << "nj: " << nj->def().name();
       std::vector<Node*>* nj_grad_list;
       auto it = node_to_grads_list_mapper_.find(nj);
       if (it == node_to_grads_list_mapper_.end()) {
@@ -102,7 +99,7 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
     reversed_node_list.push_back(it->second);
   }
 
-  LOG(DEBUG) << "\n ------------------ gradients done ------------------";
+  LOG(INFO) << "\n ------------------ gradients done ------------------";
 
   return 0;
 }
@@ -137,7 +134,7 @@ Node* Gradients::SumGradients(std::vector<Node*>& node_list, Graph* g) {
   }
   node_name += ")";
 
-  LOG(DEBUG) << "accumulate_n node name: " << node_name;
+  DLOG(DEBUG) << "accumulate_n node name: " << node_name;
   
   grad_node_def.set_name(node_name);
 

@@ -50,8 +50,8 @@ if [[ "$os_name" == "linux" ]]; then
   dynamic_linker="/lib64/ld-lsb-x86-64.so"
 fi
 
-build_type=Debug
-#build_type="Release"
+#build_type=Debug
+build_type=Release
 
 cmake $PROJECT_DIR \
   -DCMAKE_C_COMPILER=`which gcc` \

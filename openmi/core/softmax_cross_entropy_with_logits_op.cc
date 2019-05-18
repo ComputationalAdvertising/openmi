@@ -36,13 +36,13 @@ public:
     CHECK(labels_in.shape().IsSameSize(logits_in.shape()))
       << "shape of labels and logits not match";
     
+    TensorShape expected_loss_out_shape;
+    expected_loss_out_shape.AddDim(labels_in.shape().DimSize(0));
+    expected_loss_out_shape.AddDim(1L);
+
     Tensor& loss_out = context->output();
-    if (!loss_out.IsInitialized()) {
-      TensorShape out_shape;
-      uint64_t batch_size = labels_in.shape().DimSize(0);
-      out_shape.AddDim(batch_size);
-      out_shape.AddDim(1L);
-      loss_out.AllocateTensor(out_shape);
+    if (!loss_out.IsInitialized() || loss_out.shape() != expected_loss_out_shape) {
+      loss_out.AllocateTensor(expected_loss_out_shape);
     }
 
     functor::SoftmaxCrossEntropyWithLogitsFunctor<Device, T> functor;
@@ -70,7 +70,7 @@ public:
     
     // gradient of cross entropy with logits
     Tensor& logits_grad_out = context->output();
-    if (!logits_grad_out.IsInitialized()) {
+    if (!logits_grad_out.IsInitialized() || logits_grad_out.shape() != logits_in.shape()) {
       logits_grad_out.AllocateTensor(logits_in.shape());
     }
 

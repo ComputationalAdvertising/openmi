@@ -12,7 +12,7 @@ public:
     auto& logits_in = context->input(0);
     auto& sigmoid_out = context->output();
 
-    if (!sigmoid_out.IsInitialized()) {
+    if (!sigmoid_out.IsInitialized() || sigmoid_out.shape() != logits_in.shape()) {
       sigmoid_out.AllocateTensor(logits_in.shape());
     }
 
@@ -34,7 +34,7 @@ public:
     auto& labels_in = context->input(0);
     auto& sigmoid_in = context->input(1);
     auto& loss_out = context->output();
-    if (!loss_out.IsInitialized()) {
+    if (!loss_out.IsInitialized() || loss_out.shape() != sigmoid_in.shape()) {
       loss_out.AllocateTensor(sigmoid_in.shape());
     }
 

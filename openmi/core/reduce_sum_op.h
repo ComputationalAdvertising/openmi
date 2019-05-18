@@ -53,14 +53,15 @@ public:
     Eigen::array<int, 1> depth_dim;
     depth_dim[0] = axis;
 
-    if (in.shape().IsSameSize(out.shape())) {
-      size_t out_rank_size = out.shape().Dims();
-      if (keep_dims) {
-        out.shape().SetDim(out_rank_size - 1, 1);
-      } else {
-        out.shape().DeleteDim(out_rank_size - 1);
-      }
-      out.ReallocateTensor(out.shape());
+    TensorShape expected_out_shape(in.shape());
+    if (keep_dims) {
+      expected_out_shape.SetDim(in.shape().Dims() - 1, 1);
+    } else {
+      expected_out_shape.DeleteDim(in.shape().Dims() - 1);
+    }
+
+    if (out.shape() != expected_out_shape) {
+      out.ReallocateTensor(expected_out_shape);
     }
 
     Eigen::array<Eigen::DenseIndex, NDIMS> in_dims, out_dims;

@@ -40,8 +40,8 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
     UpdateMultiDimReshape(in1, rreshape, NDIMS);
   }
 
-  LOG(INFO) << "lreshape: " << lreshape[0];
-  LOG(INFO) << "rreshape: " << rreshape[0];
+  DLOG(INFO) << "lreshape: " << lreshape[0];
+  DLOG(INFO) << "rreshape: " << rreshape[0];
 
   TensorShape out_shape;
   bool is_lbcast = false, is_rbcast = false;
@@ -65,15 +65,16 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
   
   LOG(INFO) << "out_shape: " << out_shape.DebugString();
 
-  if (!out.IsInitialized()) {
+  if (!out.IsInitialized() || out.shape() != out_shape) {
     out.AllocateTensor(out_shape);
   }
 
   auto X0 = in0.tensor<T, NDIMS>();
   auto X1 = in1.tensor<T, NDIMS>();
-  LOG(INFO) << "X0:\n" << X0; 
-  LOG(INFO) << "X1:\n" << X1; 
   auto Y = out.tensor<T, NDIMS>();
+
+  DLOG(INFO) << "X0:\n" << X0; 
+  DLOG(INFO) << "X1:\n" << X1; 
 
   Eigen::array<Eigen::DenseIndex, NDIMS> lreshape_dims, rreshape_dims, lbcast_dims, rbcast_dims;
   for (int i = 0; i < NDIMS; ++i) {
@@ -83,7 +84,7 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
     rbcast_dims[i] = rbcast[i];
   }
 
-  //LOG(INFO) << "is_lbcast: " << is_lbcast << ", is_rbcast: " << is_rbcast; 
+  DLOG(INFO) << "is_lbcast: " << is_lbcast << ", is_rbcast: " << is_rbcast; 
   
   typename FUNCTOR::func func;
   auto d = context->eigen_device<Device>();
@@ -112,7 +113,7 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
     Y.device(d) = X00.binaryExpr(X11, typename FUNCTOR::func());
   */
 
-  LOG(INFO) << "Y:\n" << Y;
+  DLOG(INFO) << "Y:\n" << Y;
 }
 
 }; // struct BinaryElementWiseOp

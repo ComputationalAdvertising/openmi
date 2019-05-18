@@ -14,9 +14,7 @@ public:
   void Compute(OpKernelContext* context) override {
     Tensor& out = context->output();
     if (!out.IsInitialized()) {
-      std::vector<uint64_t> dims;
-      dims.push_back(1L);
-      TensorShape out_shape(dims);
+      TensorShape out_shape("1");
       out.AllocateTensor(out_shape);
     }
     auto Y = out.flat<T>();

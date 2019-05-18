@@ -33,7 +33,6 @@ Status GraphConstructor::Construct(proto::GraphDef* gdef,
 }
 
 Status GraphConstructor::TryImport() {
-  LOG(INFO) << "GraphConstructor::TryImport begin";
   g_->set_name(*(gdef_->mutable_name()));
   g_->set_version(gdef_->version());
   Status s;
@@ -41,7 +40,7 @@ Status GraphConstructor::TryImport() {
     proto::NodeDef* node_def = const_cast<proto::NodeDef*>(&gdef_->node(i));
     NodeInfo ninfo(*node_def, i, NC_OP, NS_FORWARD);
     g_->AddNode(ninfo, &s);
-    LOG(INFO) << gdef_->node(i).name() << " node add done.";
+    LOG(INFO) << "node[" << gdef_->node(i).name() << "] add to graph done.";
   }
 
   // parse node dependencies 
@@ -53,7 +52,6 @@ Status GraphConstructor::TryImport() {
       g_->AddInput(node_def.name(), n);
     }
   }
-  //LOG(INFO) << "GraphConstructor::TryImport done";
   return Status::OK();
 }
 

@@ -152,14 +152,21 @@ public:
       alloc_.reset(cpu_allocator());
     }
     size_t size = shape_.NumElements() * SizeOfType(type_);
+    if (buf_ != nullptr) {
+      buf_->Clear();
+    }
     buf_.reset(new TensorBuffer(alloc_.get(), size));
     if (buf_->IsInitialized()) {
       is_initialized_ = true;
+    } else {
+      LOG(FATAL) << "tensor buffer initialize failed.";
     }
   }
 
   void ReallocateTensor(TensorShape& shape) {
-    buf_->Clear();
+    if (buf_ != nullptr) {
+      buf_->Clear();
+    }
     AllocateTensor(shape);
   }
 

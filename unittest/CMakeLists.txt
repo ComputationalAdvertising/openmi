@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.4) 
 
-set(CMAKE_BUILD_TYPE "Debug")
+#set(CMAKE_BUILD_TYPE "Debug")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/unittest)
 
 set(PREFIX_LINKER_FLAGS "-static -Wl,--whole-archive ${DEPS_WHOLE_ARCHIVE_LIBRARIES} -Wl,--no-whole-archive -Wl,--eh-frame-hdr")

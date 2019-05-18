@@ -23,6 +23,65 @@ typename MTypes<T>::Matrix ToEigenVector(Tensor& tensor) {
     v.data(), 1, v.dimension(0));
 }
 
+void Iter(Executor& exec, int batch_size) {
+  // 1. update source nodes. such as W/X/b
+  LOG(INFO) << "================= [x] ================= \n";
+  const int rank = 2;
+  int column_size = 8;
+
+  Tensor* x = GetTensor(exec, "x");
+
+  std::vector<uint64_t> batch_dims;
+  batch_dims.push_back(batch_size);
+  batch_dims.push_back(column_size);
+
+  TensorShape shape(batch_dims);
+  x->AllocateTensor(shape);
+  x->tensor<float, rank>().setConstant(0.2);
+  DLOG(INFO)  << "Variable(x):\n" << x->tensor<float, 2>(); 
+  //auto matrix_x = ToEigenMatrix<float>(*x);
+  auto matrix_x = x->ToEigenMatrix<float>();
+  DLOG(INFO) << "Matrix[x]:\n" << matrix_x << "\trows:" << matrix_x.rows() << ", cols:" << matrix_x.cols();
+  
+  LOG(INFO) << "================= [label] ================= \n";
+  int num_label_dim = 1;
+  Tensor* label = GetTensor(exec, "label");
+  
+  std::vector<uint64_t> label_dims;
+  label_dims.push_back(batch_size);
+  label_dims.push_back(num_label_dim);
+
+  TensorShape lshape(label_dims);
+  label->AllocateTensor(lshape);
+  
+  label->tensor<float, rank>().setConstant(1);
+  label->tensor<float, rank>()(0, 0) = 0;
+  label->tensor<float, rank>()(2, 0) = 0;
+  label->tensor<float, rank>()(4, 0) = 0;
+
+  LOG(INFO) << "================= [w] ================= \n";
+  Tensor* w = GetTensor(exec, "w");
+  w->tensor<float, rank>().setConstant(0.3);
+  DLOG(INFO)  << "Variable(w):\n" << w->tensor<float, rank>();
+
+  auto matrix_w = ToEigenMatrix<float>(*w);
+  DLOG(INFO) << "matrix_w:\n" << matrix_w << "\trows:" << matrix_w.rows() << ", cols:" << matrix_w.cols();
+
+  LOG(INFO) << "================= [b] ================= \n";
+  Tensor* b = GetTensor(exec, "b");
+  b->vec<float>().setConstant(0.002);
+  DLOG(INFO) << "Variable(b):\n" << b->vec<float>();
+  
+  LOG(INFO) << "================= [exec.run] ================= \n";
+  // y = 0.991998
+  Status s = exec.Run();
+
+  LOG(DEBUG) << "done";
+  // 2. forward & backword
+
+  // 3. push gradients 
+}
+
 int main(int argc, char** argv) {
   const char* file = "unittest/conf/graph_demo.conf";
   proto::GraphDef gdef;
@@ -33,8 +92,8 @@ int main(int argc, char** argv) {
 
   Executor exec(gdef);
 
+  /**
   const int rank = 2;
-
   LOG(INFO) << "================= [x] ================= \n";
   Tensor* x = GetTensor(exec, "x");
   TensorShape shape("6,8");
@@ -72,6 +131,13 @@ int main(int argc, char** argv) {
   LOG(INFO) << "================= [exec.run] ================= \n";
   // y = 0.991998
   Status s = exec.Run();
+  */
+
+  int epoch = 100000;
+  for (int i = 0; i < epoch; ++i) {
+    int batch_size = (i + 1000) % 10000;
+    Iter(exec, batch_size);
+  }
 
   LOG(DEBUG) << "done";
   

@@ -22,12 +22,12 @@ public:
     Tensor& logits_in = context->input(1);
 
     Tensor& loss_out = context->output();
-    if (!loss_out.IsInitialized()) {
+    if (!loss_out.IsInitialized() || loss_out.shape() != logits_in.shape()) {
       loss_out.AllocateTensor(logits_in.shape());
     }
 
     Tensor& logits_grad_out = context->output(0);
-    if (!logits_grad_out.IsInitialized()) {
+    if (!logits_grad_out.IsInitialized() || logits_grad_out.shape() != logits_in.shape()) {
       logits_grad_out.AllocateTensor(logits_in.shape());
     }
     
@@ -46,7 +46,7 @@ public:
     // gradient of sigmoid cross entropy with logits
     logits_grad.device(d) = (logits_grad - labels);
 
-    LOG(DEBUG) << "after sigmoid_cross_entropy_with_logits. loss_out:\n" << loss
+    DLOG(INFO) << "after sigmoid_cross_entropy_with_logits. loss_out:\n" << loss
       << "\nlogits_grad_out:\n" << logits_grad;
   }
 }; // class SigmoidCrossEntropyWithLogitsOp

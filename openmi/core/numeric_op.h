@@ -16,24 +16,23 @@ class UnaryOp : public OpKernel {
 public:
   void Compute(OpKernelContext* context) override {
     CHECK(context->inputs().size() > 0) 
-      << context->name() << " not input node.";
+      << context->name() << " have not input node.";
     
     Tensor& in = context->input(0);
     Tensor& out = context->output();
 
-    if (!out.IsInitialized()) {
-      LOG(DEBUG) << "not initialized";
-      TensorShape out_shape;
-      auto* related_node = context->GetTensor(context->related_node_name());
-      if (related_node != nullptr && related_node->IsInitialized()) {
-        out_shape = related_node->shape();
-      } else {
-        out_shape = in.shape();
-      }
-      DLOG(INFO) << "in.name: " << context->inputs().at(0) << ", out.name: " << context->name() << ", related_node[" << context->related_node_name()
-               << "], out_shape[" << out_shape.DebugString() << "]";
-      out.AllocateTensor(out_shape);
+    TensorShape expected_out_shape(in.shape());
+    auto* related_node = context->GetTensor(context->related_node_name());
+    if (related_node != nullptr && related_node->IsInitialized()) {
+      expected_out_shape = related_node->shape();
     }
+
+    if (!out.IsInitialized() || out.shape() != expected_out_shape) {
+      out.AllocateTensor(expected_out_shape);
+    }
+    DLOG(INFO) << "in.name: " << context->inputs().at(0) << ", out.name: " << context->name() << ", related_node[" << context->related_node_name()
+               << "], out_shape[" << expected_out_shape.DebugString() << "]";
+  
     size_t max_dims = std::max(in.shape().Dims(), out.shape().Dims());
     switch (max_dims) {
 #define NDIM_CASE(NDIMS)  \
@@ -74,27 +73,27 @@ public:
     auto in1_dims = in1.shape().Dims();
     auto max_dims = std::max(in0_dims, in1_dims);
 
-    if (!out.IsInitialized()) {
-      TensorShape out_shape;
-      auto* related_node = context->GetTensor(context->related_node_name());
-      if (related_node != nullptr && related_node->IsInitialized()) {
-        out_shape = related_node->shape();
-      } else {
-        for (auto i = 0; i < max_dims; ++i) {
-          auto in0_ith_dim = 1;
-          if (in0_dims >= i && in0.shape().DimSize(i) > 1) {
-            in0_ith_dim = in0.shape().DimSize(i);
-          }
-          auto in1_ith_dim = 1;
-          if (in1_dims >= i && in1.shape().DimSize(i) > 1) {
-            in1_ith_dim = in1.shape().DimSize(i);
-          }
-          out_shape.AddDim(
-            in0_ith_dim > in1_ith_dim ? in0_ith_dim : in1_ith_dim
-          );
-        }
+    TensorShape expected_out_shape;
+    for (auto idx = 0; idx < max_dims; ++idx) {
+      auto in0_ith_dim = 1;
+      if (in0_dims >= idx && in0.shape().DimSize(idx) > 1) {
+        in0_ith_dim = in0.shape().DimSize(idx);
       }
-      out.AllocateTensor(out_shape);
+      auto in1_ith_dim = 1;
+      if (in1_dims >= idx && in1.shape().DimSize(idx) > 1) {
+        in1_ith_dim = in1.shape().DimSize(idx);
+      }
+      expected_out_shape.AddDim(std::max(in0_ith_dim, in1_ith_dim));
+    }
+
+    if (!out.IsInitialized() || out.shape() != expected_out_shape) {
+      out.AllocateTensor(expected_out_shape);
+      auto* related_node = context->GetTensor(context->related_node_name());
+      if (related_node != nullptr 
+          && related_node->IsInitialized() 
+          && related_node->shape() != expected_out_shape) {
+        related_node->AllocateTensor(expected_out_shape);
+      }
     }
 
     switch (max_dims) {

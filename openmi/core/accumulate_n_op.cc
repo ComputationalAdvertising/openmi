@@ -20,7 +20,7 @@ public:
     }
 
     Tensor& out = ctx->output();
-    if (!out.IsInitialized()) {
+    if (!out.IsInitialized() || out.shape() != shape0) {
       out.AllocateTensor(shape0);
     }
 

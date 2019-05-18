@@ -5,7 +5,6 @@ using namespace openmi;
 namespace openmi {
 
 void Node::Initialize(NodeInfo& ninfo) {
-  LOG(INFO) << "Node::Initialize node:" << ninfo.node_def.name();
   ninfo_ = ninfo;
   // attr value(s) of node 
   for (auto& attr: ninfo_.node_def.attr()) {
@@ -37,7 +36,6 @@ void Node::Clear() {
 
 Node* Graph::AddNode(NodeInfo& ninfo, Status* status) {
   auto node_name = ninfo.node_def.name();
-  LOG(INFO) << "AddNode name:" << node_name;
   CHECK(node_mapper_.find(node_name) == node_mapper_.end()) 
     << ninfo.node_def.name() << " already exists.";
   
@@ -57,7 +55,7 @@ Node* Graph::AddNode(NodeInfo& ninfo, Status* status) {
     variable_nodes_.push_back(node);
   }
 
-  LOG(INFO) << "AddNode name:" << node_name;
+  DLOG(INFO) << "AddNode name:" << node_name;
   return node;
 }
 
@@ -74,7 +72,9 @@ Node* Graph::CreateNode(NodeInfo& new_ninfo, Node& related_node) {
   new_ninfo.node_def.set_device(related_node.def().device());
   new_ninfo.related_node_name = related_node.def().name();
   related_node.node_info().related_node_name = new_ninfo.node_def.name();
-  LOG(INFO) << "new_info: " << new_ninfo.node_def.name() << ", related: " << related_node.def().name() << ", n: " << related_node.node_info().related_node_name;
+  DLOG(INFO) << "new_info: " << new_ninfo.node_def.name() 
+             << ", related: " << related_node.def().name() 
+             << ", n: " << related_node.node_info().related_node_name;
   Status s;
   Node* new_node = AddNode(new_ninfo, &s);
   if (!s.ok()) {

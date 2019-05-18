@@ -46,7 +46,7 @@ public:
       << "softmax logits must be 2-dimensional";
 
     Tensor& softmax_out = context->output();
-    if (!softmax_out.IsInitialized()) {
+    if (!softmax_out.IsInitialized() || softmax_out.shape() != logits_in.shape()) {
       softmax_out.AllocateTensor(logits_in.shape());
     }
 

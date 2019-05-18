@@ -46,25 +46,18 @@ void MatMulOp<Device, T>::Compute(OpKernelContext* ctx) {
   DLOG(INFO) << "in1: " << ctx->inputs().at(1) << ", transpose:" << transpose_b_ 
     << ", shape:" << in1.shape().DebugString() << ", value:\n" << X1;
 
-  if (!out.IsInitialized()) {
-    TensorShape out_shape;
-    auto* related_node = ctx->GetTensor(ctx->related_node_name());
-    if (related_node != nullptr && related_node->IsInitialized()) {
-      DLOG(INFO) << "related initialized. shape: " << related_node->shape().DebugString();
-      out_shape = related_node->shape();
-    } else {
-      int a_dim_remaining = 1 - dim_pair_[0].first;
-      int b_dim_remaining = 1 - dim_pair_[0].second;
-      out_shape.AddDim(in0.shape().DimSize(a_dim_remaining));
-      out_shape.AddDim(in1.shape().DimSize(b_dim_remaining));
-      DLOG(INFO) << "out shape: " << out_shape.DebugString();
-    }
+  TensorShape expected_out_shape;
+  int a_dim_remaining = 1 - dim_pair_[0].first;
+  int b_dim_remaining = 1 - dim_pair_[0].second;
+  expected_out_shape.AddDim(in0.shape().DimSize(a_dim_remaining));
+  expected_out_shape.AddDim(in1.shape().DimSize(b_dim_remaining));
 
-    out.AllocateTensor(out_shape);
-    if (out.IsInitialized()) {
-      LOG(DEBUG) << "out already initialized. num elements: " << out.shape().NumElements();
-    } else {
-      LOG(ERROR) << "out is not initialized";
+  if (!out.IsInitialized() || out.shape() != expected_out_shape) {
+    out.AllocateTensor(expected_out_shape);
+
+    auto* related_node = ctx->GetTensor(ctx->related_node_name());
+    if (related_node != nullptr && related_node->IsInitialized() && related_node->shape() != expected_out_shape) {
+      related_node->AllocateTensor(expected_out_shape);
     }
   }
 
@@ -76,7 +69,7 @@ void MatMulOp<Device, T>::Compute(OpKernelContext* ctx) {
   MatMulImpl<Device, typename TTypes<T>::Matrix, 
     Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> >(d, Y, X0, X1, dim_pair_);
   */
-  LOG(DEBUG) << "name:" << ctx->name() << ", Y:\n" << Y;
+  DLOG(DEBUG) << "name:" << ctx->name() << ", Y:\n" << Y;
 }
 
 #define REGISTER_MATMUL_OP(T) \

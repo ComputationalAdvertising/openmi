@@ -11,7 +11,6 @@ bool is_training = true;
 
 namespace openmi {
 
-// 出度为0的node
 void FindSinkNodes(Graph& g, std::vector<Node*>& sink_nodes, bool used_back_props = false) {
   // find output nodes 
   std::set<std::string> exist_outputs;
@@ -50,34 +49,32 @@ void Executor::InitSessionState() {
     if (it != kv.second->attrs().end() && 
         it->second.attr_type == ::openmi::AttrValue::kShape) {
       tensor = new Tensor(type, it->second.shape);
-      LOG(DEBUG) << "InitSessionState. name:" << kv.first << ", type: " << type << ", shape: " << it->second.shape.DebugString();
     } else {
       tensor = new Tensor(type);
     }
-    LOG(INFO) << "name: " << kv.second->def().name() 
-      << ", is init: " << tensor->IsInitialized();
+
+    LOG(INFO) << __FUNCTION__ << ". node name: " << kv.second->def().name() << ", is init: " << tensor->IsInitialized();
     if (tensor->IsInitialized()) {
-      LOG(INFO) << "tensor shape: " << tensor->shape().DebugString();
+      DLOG(INFO) << "tensor shape: " << tensor->shape().DebugString();
     }
     session_state_.AddTensor(kv.second->def().name(), tensor);
   }
 }
 
 Executor::Executor(proto::GraphDef& gdef) {
-  LOG(INFO) << "Executor construct ...";
   Status status = ConvertGraphDefToGraph(&gdef, &g_);
-  LOG(INFO) << "Executor construct done ...";
 
+  // not contain reversed node
   FindSinkNodes(g_, g_.sink_nodes());
-  LOG(INFO) << "sink_nodes: " << g_.sink_nodes()[0]->def().name();
+  
   TopoOrderList(g_.sink_nodes(), g_.forward_topo_nodes(), &g_);
 
   // TODO CHECK DAG  
   
   // TODO for test
-  LOG(DEBUG) << "forward topo nodes of graph: ";
+  DLOG(INFO) << "forward topo nodes of graph: ";
   for (int i = 0; i < g_.forward_topo_nodes().size(); ++i) {
-    LOG(DEBUG) << i << ", --> " << g_.forward_topo_nodes()[i]->def().name();
+    DLOG(INFO) << i << "th. node_name: " << g_.forward_topo_nodes()[i]->def().name();
   }
   
   if (is_training) {
@@ -90,20 +87,24 @@ Executor::Executor(proto::GraphDef& gdef) {
     int result = gradients_.gradients(output_nodes, input_nodes, input_gradient_nodes, &g_);
 
     if (result != 0) {
-      LOG(ERROR) << "gradients process failed.";
+      LOG(FATAL) << "gradients process failed.";
     }
-  
+
+    // re-found sink nodes that contain reversed node
     FindSinkNodes(g_, g_.global_sink_nodes());
+
     for (int i = 0; i < g_.global_sink_nodes().size(); ++i) {
-      LOG(DEBUG) << "global sink nodes i: " << i << ", node: " << g_.global_sink_nodes().at(i)->def().name();
+      DLOG(INFO) << "global sink nodes i[" << i << "] node_name: " << g_.global_sink_nodes().at(i)->def().name();
       if (g_.global_sink_nodes().at(i)->outputs().size() > 0) {
-        LOG(DEBUG) << "outputs(0): " << g_.global_sink_nodes().at(i)->outputs().at(0);
+        DLOG(INFO) << "outputs(0): " << g_.global_sink_nodes().at(i)->outputs().at(0);
       }
     }
+
     TopoOrderList(g_.global_sink_nodes(), g_.global_topo_nodes(), &g_);
-  
+
+    LOG(INFO) << "after topology order list.";
     for (int i = 0; i < g_.global_topo_nodes().size(); ++i) {
-      LOG(DEBUG) << "global topo node. i: " << i << ", node:" << g_.global_topo_nodes().at(i)->def().name();
+      LOG(INFO) << "global topo node. i[" << i << "], node_name: " << g_.global_topo_nodes().at(i)->def().name();
     }
   }
 
@@ -136,7 +137,7 @@ Status Executor::Run() {
     params.related_node_name = node->node_info().related_node_name;
 
     if (node->outputs().size() > 0) {
-      LOG(DEBUG) << "output_at0: " << node->outputs().at(0) << ", node:" << node->def().name();
+      LOG(DEBUG) << "output.at(0): " << node->outputs().at(0) << ", node:" << node->def().name();
     }
 
     LOG(INFO) << "node.name: [" << node->def().name() << "], op: " << node->def().op() << ", related_node: " << node->node_info().related_node_name;
