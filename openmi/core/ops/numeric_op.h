@@ -19,6 +19,7 @@ public:
       << context->name() << " have not input node.";
     
     Tensor& in = context->input(0);
+    CHECK(in.CheckTensorInitialized(context->inputs().at(0)));
     Tensor& out = context->output();
 
     TensorShape expected_out_shape(in.shape());
@@ -66,7 +67,10 @@ class BinaryOp : public OpKernel {
 public:
   void Compute(OpKernelContext* context) override {
     auto& in0 = context->input(0);
+    CHECK(in0.CheckTensorInitialized(context->inputs().at(0)));
     auto& in1 = context->input(1);
+    CHECK(in1.CheckTensorInitialized(context->inputs().at(1)));
+
     auto& out = context->output();
 
     auto in0_dims = in0.shape().Dims();

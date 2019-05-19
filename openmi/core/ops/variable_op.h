@@ -11,8 +11,9 @@ public:
     LOG(INFO) << "VariableOp init";
   }
 
-  void Compute(OpKernelContext* context) override {
+  void Compute(OpKernelContext* ctx) override {
     LOG(INFO) << "VariableOp compute";
+    DLOG(INFO) << __FUNCTION__ << ", current node: " << ctx->name() << ", shape: " << ctx->output().shape().DebugString();
   }
 }; // class VariableOp 
 

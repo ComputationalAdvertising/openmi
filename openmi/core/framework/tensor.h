@@ -170,6 +170,16 @@ public:
     AllocateTensor(shape);
   }
 
+  inline bool CheckTensorInitialized(std::string& name) {
+    if (!IsInitialized()) {
+      LOG(ERROR) << ". input tensor has not initialized. "
+        << " please check tensor init or allocate buffer. "
+        << "name[" << name << "]";
+      return false;
+    }
+    return true;
+  }
+
 private:
   DataType type_;
   TensorShape shape_;

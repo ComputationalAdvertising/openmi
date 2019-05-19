@@ -5,43 +5,45 @@
 Tensor* GetTensor(Executor& exec, std::string name) {
   Tensor* t = nullptr;
   Status status = exec.session_state_.GetTensor(name, &t);
+  CHECK(t != nullptr) << "tensor not found from session state. name: " << name;
   return t;
 }
 
-template <typename T>
-typename MTypes<T>::Matrix ToEigenMatrix(Tensor& tensor) {
-  auto m = tensor.matrix<T>();
-  return Eigen::Map<typename MTypes<T>::Matrix>(
-    m.data(), m.dimension(0), m.dimension(1));
-}
-
-// RowMajor
-template <typename T>
-typename MTypes<T>::Matrix ToEigenVector(Tensor& tensor) {
-  auto v = tensor.vec<T>();
-  return Eigen::Map<typename MTypes<T>::Matrix>(
-    v.data(), 1, v.dimension(0));
+void InitColEmbedding(Tensor** t, std::vector<uint64_t>& batch_dims, const int rank, float v) {
+  TensorShape shape(batch_dims);
+  (*t)->AllocateTensor(shape);
+  (*t)->tensor<float, 2>().setConstant(v);
+  DLOG(INFO) << "placeholder variable:\n" << (*t)->tensor<float, 2>();
 }
 
 void Iter(Executor& exec, int batch_size) {
   // 1. update source nodes. such as W/X/b
-  LOG(INFO) << "================= [x] ================= \n";
+  LOG(INFO) << "================= [placeholder embedding] ================= \n";
   const int rank = 2;
   int column_size = 8;
-
-  Tensor* x = GetTensor(exec, "x");
 
   std::vector<uint64_t> batch_dims;
   batch_dims.push_back(batch_size);
   batch_dims.push_back(column_size);
+  
+  Tensor* c1_embed = GetTensor(exec, "c1_embed");
+  Tensor* c2_embed = GetTensor(exec, "c2_embed");
+  Tensor* c3_embed = GetTensor(exec, "c3_embed");
 
-  TensorShape shape(batch_dims);
-  x->AllocateTensor(shape);
-  x->tensor<float, rank>().setConstant(0.2);
-  DLOG(INFO)  << "Variable(x):\n" << x->tensor<float, 2>(); 
-  //auto matrix_x = ToEigenMatrix<float>(*x);
-  auto matrix_x = x->ToEigenMatrix<float>();
-  DLOG(INFO) << "Matrix[x]:\n" << matrix_x << "\trows:" << matrix_x.rows() << ", cols:" << matrix_x.cols();
+  InitColEmbedding(&c1_embed, batch_dims, 2, 0.01);
+  InitColEmbedding(&c2_embed, batch_dims, 2, -0.02);
+  InitColEmbedding(&c3_embed, batch_dims, 2, 0.03);
+  
+  LOG(INFO) << "================= [placeholder linear] ================= \n";
+  std::vector<uint64_t> linear_batch_dims;
+  linear_batch_dims.push_back(batch_size);
+  linear_batch_dims.push_back(1L);
+
+  Tensor* c1_linear = GetTensor(exec, "c1_linear");
+  Tensor* c3_linear = GetTensor(exec, "c3_linear");
+
+  InitColEmbedding(&c1_linear, linear_batch_dims, 2, 0.0001);
+  InitColEmbedding(&c3_linear, linear_batch_dims, 2, 0.0003);
   
   LOG(INFO) << "================= [label] ================= \n";
   int num_label_dim = 1;
@@ -56,21 +58,17 @@ void Iter(Executor& exec, int batch_size) {
   
   label->tensor<float, rank>().setConstant(1);
   label->tensor<float, rank>()(0, 0) = 0;
-  label->tensor<float, rank>()(2, 0) = 0;
-  label->tensor<float, rank>()(4, 0) = 0;
+  DLOG(INFO) << "label:\n" << label->tensor<float, rank>();
 
-  LOG(INFO) << "================= [w] ================= \n";
-  Tensor* w = GetTensor(exec, "w");
-  w->tensor<float, rank>().setConstant(0.3);
-  DLOG(INFO)  << "Variable(w):\n" << w->tensor<float, rank>();
+  LOG(INFO) << "================= [w_layer1] ================= \n";
+  Tensor* w = GetTensor(exec, "w_layer1");
+  w->tensor<float, rank>().setConstant(0.03);
+  DLOG(INFO)  << "Variable(w_layer1):\n" << w->tensor<float, rank>();
 
-  auto matrix_w = ToEigenMatrix<float>(*w);
-  DLOG(INFO) << "matrix_w:\n" << matrix_w << "\trows:" << matrix_w.rows() << ", cols:" << matrix_w.cols();
-
-  LOG(INFO) << "================= [b] ================= \n";
-  Tensor* b = GetTensor(exec, "b");
-  b->vec<float>().setConstant(0.002);
-  DLOG(INFO) << "Variable(b):\n" << b->vec<float>();
+  LOG(INFO) << "================= [b_layer1] ================= \n";
+  Tensor* b = GetTensor(exec, "b_layer1");
+  b->vec<float>().setConstant(0.00002);
+  DLOG(INFO) << "Variable(b_layer1):\n" << b->vec<float>();
   
   LOG(INFO) << "================= [exec.run] ================= \n";
   // y = 0.991998
@@ -91,6 +89,8 @@ int main(int argc, char** argv) {
   }
 
   Executor exec(gdef);
+  Iter(exec, 10);
+  Iter(exec, 3);
 
   // 1. 获取所有的SourceNode节点
   

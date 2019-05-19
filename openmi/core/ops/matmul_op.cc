@@ -35,7 +35,10 @@ void MatMulOp<Device, T>::Initialize(OpKernelConstruction* ctx) {
 template <typename Device, typename T>
 void MatMulOp<Device, T>::Compute(OpKernelContext* ctx) {
   auto& in0 = ctx->input(0);
+  CHECK(in0.CheckTensorInitialized(ctx->inputs().at(0)));
   auto& in1 = ctx->input(1);
+  CHECK(in1.CheckTensorInitialized(ctx->inputs().at(1)));
+
   auto& out = ctx->output();
 
   auto X0 = in0.matrix<T>();

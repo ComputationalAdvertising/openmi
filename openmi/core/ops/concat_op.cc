@@ -31,8 +31,9 @@ class ConcatOp : public OpKernel {
 public:
   void Compute(OpKernelContext* ctx) override {
     auto& in0 = ctx->input(0);
+    CHECK(in0.CheckTensorInitialized(ctx->inputs().at(0)));
     int rank = in0.shape().Dims();
-    int total_col_size = in0.shape().DimSize(rank - 1);
+    auto total_col_size = in0.shape().DimSize(rank - 1);
     DLOG(INFO) << "in0 shape: " << in0.shape().DebugString();
 
     TensorShape sub_shape(in0.shape());
@@ -40,6 +41,7 @@ public:
 
     for (int i = 1; i < ctx->inputs().size(); ++i) {
       auto& ini = ctx->input(i);
+      CHECK(ini.CheckTensorInitialized(ctx->inputs().at(i)));
       auto ith_rank = ini.shape().Dims();
       CHECK(ith_rank = rank) << "input tensor rank not match.";
       TensorShape ini_sub_shape(ini.shape());

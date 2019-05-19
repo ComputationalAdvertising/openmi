@@ -7,6 +7,7 @@ class SliceOp : public UnaryOp<T, SliceOp<Device, T>> {
 public: 
   void Initialize(OpKernelConstruction* context) override {
     context->GetAttr<int>("offset", &offset_);
+    LOG(INFO) << "test_test offset " << offset_;
     LOG(INFO) << "test_test " << context->name();
   }
 

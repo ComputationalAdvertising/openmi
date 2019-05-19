@@ -40,18 +40,19 @@ public:
     ctx->GetAttr<bool>("is_log", &is_log_);
   }
 
-  void Compute(OpKernelContext* context) override {
-    Tensor& logits_in = context->input(0);
+  void Compute(OpKernelContext* ctx) override {
+    Tensor& logits_in = ctx->input(0);
+    CHECK(logits_in.CheckTensorInitialized(ctx->inputs().at(1)));
     CHECK(logits_in.shape().Dims() == 2) 
       << "softmax logits must be 2-dimensional";
 
-    Tensor& softmax_out = context->output();
+    Tensor& softmax_out = ctx->output();
     if (!softmax_out.IsInitialized() || softmax_out.shape() != logits_in.shape()) {
       softmax_out.AllocateTensor(logits_in.shape());
     }
 
     functor::SoftmaxFunctor<Device, T> functor;
-    functor(context->template eigen_device<Device>(), 
+    functor(ctx->template eigen_device<Device>(), 
         logits_in.matrix<T>(), softmax_out.matrix<T>(), is_log_);
 
     LOG(INFO) << "softmax out:\n" << softmax_out.matrix<T>();
