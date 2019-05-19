@@ -26,8 +26,8 @@ private:
 
 template <typename Device, typename T>
 void MatMulOp<Device, T>::Initialize(OpKernelConstruction* ctx) {
-  ctx->GetAttr<bool>("transpose_a", &transpose_a_, ::openmi::AttrValue::kBool);
-  ctx->GetAttr<bool>("transpose_b", &transpose_b_, ::openmi::AttrValue::kBool);
+  ctx->GetAttr<bool>("transpose_a", &transpose_a_);
+  ctx->GetAttr<bool>("transpose_b", &transpose_b_);
   dim_pair_[0].first = transpose_a_ ? 0 : 1;
   dim_pair_[0].second = transpose_b_ ? 1 : 0;
 }

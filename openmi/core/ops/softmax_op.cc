@@ -37,7 +37,7 @@ template <typename Device, typename T>
 class SoftmaxOp : public OpKernel {
 public:
   void Initialize(OpKernelConstruction* ctx) override {
-    ctx->GetAttr<bool>("is_log", &is_log_, ::openmi::AttrValue::kBool);
+    ctx->GetAttr<bool>("is_log", &is_log_);
   }
 
   void Compute(OpKernelContext* context) override {

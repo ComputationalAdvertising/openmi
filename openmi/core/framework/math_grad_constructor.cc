@@ -6,7 +6,6 @@
 
 namespace openmi {
 
-
 // ReduceSum gradient
 void ReduceSumGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   auto x_name = node.inputs().at(0);
@@ -54,9 +53,9 @@ void MatMulGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_
   auto dy_name = dy_list.at(0)->def().name();
 
   bool transpose_a_ = false;
-  GetAttr<bool>(node.attrs(), "transpose_a", &transpose_a_, ::openmi::AttrValue::kBool);
+  GetAttr(node.attrs(), "transpose_a", &transpose_a_);
   bool transpose_b_ = false;
-  GetAttr<bool>(node.attrs(), "transpose_b", &transpose_b_, ::openmi::AttrValue::kBool);
+  GetAttr(node.attrs(), "transpose_b", &transpose_b_);
   
   std::string dx1_node_name(x1_name + "_GradOp(" + dy_name + " * " + x2_name + "^T)");
   proto::NodeDef ndef1;
@@ -139,6 +138,29 @@ void AddGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_lis
 }
 OPENMI_REGISTER_GRADIENT(Add, AddGrad);
 
+// Concat gradient
+void ConcatGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
+  auto y_name = node.def().name();
+  auto dy_name = dy_list.at(0)->def().name();
+  std::string op("Slice");
+  for (int i = 0; i < node.inputs().size(); ++i) {
+    auto xi_name = node.inputs().at(i);
+    std::string dxi_node_name(xi_name + "_GradOp(" + dy_name + ")");
+    proto::NodeDef ndef;
+    ndef.set_name(dxi_node_name);
+    ndef.set_op(op);
+    auto attr = ndef.mutable_attr();
+    attr->insert({"offset", *attr_i(i)});
+    Node* dxi = CreateGradNode(ndef, g, xi_name);
+    dxi->AddInput(dy_name);
+    // TODO [startIdx, offset] parameter
+
+    LOG(INFO) << __FUNCTION__ << ". grad node def:\n" << dxi->def().DebugString();
+    dx_list.push_back(dxi);
+  }
+}
+OPENMI_REGISTER_GRADIENT(Concat, ConcatGrad);
+
 // Softmax gradient 
 void SoftmaxGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
   // logits
@@ -146,11 +168,10 @@ void SoftmaxGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx
   auto dy_name = dy_list.at(0)->def().name();
   auto dy_input_name = dy_list.at(0)->inputs().at(0);
   auto dy_input_node = g.FindNode(dy_input_name);
-  // TODO 
+  // TODO gradient impl
   DLOG(INFO) << __FUNCTION__ << ". dy_name: " << dy_name << ", dy_input_name:" << dy_input_name;
 }
 OPENMI_REGISTER_GRADIENT(Softmax, SoftmaxGrad);
-
 
 // Softmax Cross Entropy with Logits
 void SoftmaxCrossEntropyWithLogitsGrad(Node& node, std::vector<Node*>& dy_list, std::vector<Node*>& dx_list, Graph& g) {
@@ -165,7 +186,7 @@ void SoftmaxCrossEntropyWithLogitsGrad(Node& node, std::vector<Node*>& dy_list, 
 
   std::string op("softmax_cross_entropy_with_logits_grad");
   std::string dx2_node_name(x2_name + "_GradOp(" + dy_name + ")");
-  // TODO
+  // TODO gradient impl
 }
 OPENMI_REGISTER_GRADIENT(softmax_cross_entropy_with_logits, SoftmaxCrossEntropyWithLogitsGrad);
 

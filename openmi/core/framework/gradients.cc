@@ -11,7 +11,7 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
   std::vector<Node*> used_backward_output_nodes;
   for (Node* n: output_nodes) {
     bool used_backward = true;
-    GetAttr<bool>(n->attrs(), "used_backward", &used_backward, ::openmi::AttrValue::kBool);
+    GetAttr(n->attrs(), "used_backward", &used_backward);
     if (!used_backward) {
       LOG(WARN) << "sink node [" << n->def().name() 
                 << "] not need to back propagation.";

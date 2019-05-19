@@ -46,8 +46,8 @@ public:
   std::unordered_map<std::string, AttrValue>& attrs() { return attr_; }
 
   template <typename T>
-  void GetAttr(const std::string& key, T* value, AttrValue::AttrType attr_type) {
-    openmi::GetAttr<T>(attr_, key, value, attr_type);
+  void GetAttr(const std::string& key, T* value) {
+    openmi::GetAttr(attr_, key, value);
   }
 
   std::string name() { return name_; }

@@ -34,8 +34,8 @@ void OpRegistry::RegisterOp(std::string name, OpRegistrationEntry* entry) {
 Status OpRegistry::LookUp(Node& node, OpKernel** op_kernel) {
   auto iter = op_kernel_mapper_.find(node.def().op());
   CHECK(iter != op_kernel_mapper_.end())
-    << node.def().op() 
-    << " not in op registry. please check whether 'op' field in node_def.proto is or not correct.";
+    << "op["<< node.def().op() << "] not in op registry. "
+    << "please check whether 'op' field in node_def.proto is or not correct.";
 
   
   DataType type = DT_FLOAT;
@@ -51,8 +51,8 @@ Status OpRegistry::LookUp(Node& node, OpKernel** op_kernel) {
   }
   */
   CHECK(entry != nullptr)
-    << "device of op not exist. op_name:" 
-    << node.def().op() << ", device:" << node.def().device();
+    << "op device info not exist. " << "op_name[" << node.def().op() 
+    << "], device[" << node.def().device() << "]";
 
   *op_kernel = entry->body();
 
@@ -86,6 +86,7 @@ OPENMI_REGISTER_LINK_TAG(binary_sigmoid_grad_op);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_binary);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_unary);
 OPENMI_REGISTER_LINK_TAG(assign_op);
+OPENMI_REGISTER_LINK_TAG(concat_op);
 OPENMI_REGISTER_LINK_TAG(matmul_op);
 OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
 OPENMI_REGISTER_LINK_TAG(oneslike_op);
@@ -93,6 +94,7 @@ OPENMI_REGISTER_LINK_TAG(no_gradient_op);
 OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
 OPENMI_REGISTER_LINK_TAG(sigmoid_op);
 OPENMI_REGISTER_LINK_TAG(sigmoid_cross_entropy_with_logits);
+OPENMI_REGISTER_LINK_TAG(slice_op);
 OPENMI_REGISTER_LINK_TAG(softmax_cross_entropy_with_logits);
 OPENMI_REGISTER_LINK_TAG(softmax_op);
 OPENMI_REGISTER_LINK_TAG(Variable);

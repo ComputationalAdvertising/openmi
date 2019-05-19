@@ -37,7 +37,6 @@ public:
       Y.device(d) = X;
     }
     
-    
     DLOG(INFO) << "Y:\n" << Y << "\tshape: " << out.shape().DebugString();
   }
 }; // class ReduceSumGradOp

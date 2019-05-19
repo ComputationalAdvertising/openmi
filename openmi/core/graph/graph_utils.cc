@@ -12,8 +12,8 @@ Node* CreateGradNode(proto::NodeDef& ndef,
   NodeInfo ninfo(ndef, -1, nc, ns);
   Node* grad_node = g.GetOrCreateNode(ninfo, *related_node);
   CHECK(grad_node != nullptr) 
-    << "gradient node create failed. name:" << ndef.name()
-    << ", op:" << ndef.op();
+    << "gradient node create failed. "
+    << "name[" << ndef.name() << "], op[" << ndef.op() << "]";
 
   // fill gradient node input 
   for (size_t i = 0; i < ndef.input().size(); ++i) {

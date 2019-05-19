@@ -83,7 +83,7 @@ void Iter(Executor& exec, int batch_size) {
 }
 
 int main(int argc, char** argv) {
-  const char* file = "unittest/conf/lr_graph_demo.conf";
+  const char* file = "unittest/conf/wide_and_deep_graph_demo.conf";
   proto::GraphDef gdef;
   if (ProtobufOp::LoadObjectFromPbFile<proto::GraphDef>(file, &gdef) != 0) {
     LOG(ERROR) << "load graph def proto file failed.";
@@ -92,22 +92,9 @@ int main(int argc, char** argv) {
 
   Executor exec(gdef);
 
-  int epoch = 2;
-  for (int i = 0; i < epoch; ++i) {
-    int batch_size = (i + 6) % 10000;
-    Iter(exec, batch_size);
-  }
-
-  LOG(DEBUG) << "done";
+  // 1. 获取所有的SourceNode节点
   
-  /*
-  auto vec_b = ToEigenVector<float>(*b);
-  LOG(INFO) << "vec_b:\n" << vec_b << "\nrows:" << vec_b.rows() << ", cols:" << vec_b.cols();
-  auto wx = matrix_x * matrix_w.transpose();
-  LOG(INFO) << "wx:\n" << wx;
-  auto wxb = wx.rowwise() + vec_b.row(0);
-  LOG(INFO) << "wxb:\n" << wxb << "\nrows: " << wxb.rows() << ", cols:" << wxb.cols();
-  */
+  LOG(DEBUG) << "done";
   
   return 0;
 }

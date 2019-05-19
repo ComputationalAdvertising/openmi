@@ -14,7 +14,7 @@ bool GradientRegistry::Register(const std::string& op, GradConstructor creator) 
 void GradientRegistry::Lookup(const std::string& op, GradConstructor* creator) {
   auto it = grad_mapper_.find(op);
   CHECK(it != grad_mapper_.end()) 
-    << op << " not in gradient registry.";
+    << "op '" << op << "' not in gradient registry.";
   *creator = it->second;
 }
 
