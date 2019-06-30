@@ -11,7 +11,6 @@ public:
 
   int gradients(std::vector<Node*>& output_nodes, 
                 std::vector<Node*>& input_nodes, 
-                std::vector<Node*>& reversed_node_list, 
                 Graph* g);
 
   Node* SumGradients(std::vector<Node*>& node_list, Graph* g);

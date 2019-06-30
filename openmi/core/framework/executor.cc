@@ -78,13 +78,12 @@ Executor::Executor(proto::GraphDef& gdef) {
   }
   
   if (is_training) {
-    // Gradients only training phase, not online inference 
+    // Gradients that only training phase, not contain inference phase
     // TODO IF not training, pass it;
     std::vector<Node*>& input_nodes = g_.variable_nodes();
     std::vector<Node*>& output_nodes = g_.sink_nodes();
-    std::vector<Node*>& input_gradient_nodes = g_.variable_gradient_nodes();
 
-    int result = gradients_.gradients(output_nodes, input_nodes, input_gradient_nodes, &g_);
+    int result = gradients_.gradients(output_nodes, input_nodes, &g_);
 
     if (result != 0) {
       LOG(FATAL) << "gradients process failed.";
@@ -102,9 +101,9 @@ Executor::Executor(proto::GraphDef& gdef) {
 
     TopoOrderList(g_.global_sink_nodes(), g_.global_topo_nodes(), &g_);
 
-    LOG(INFO) << "after topology order list.";
+    DLOG(INFO) << "after topology order list.";
     for (int i = 0; i < g_.global_topo_nodes().size(); ++i) {
-      LOG(INFO) << "global topo node. i[" << i << "], node_name: " << g_.global_topo_nodes().at(i)->def().name();
+      DLOG(INFO) << "global topo node. i[" << i << "], node_name: " << g_.global_topo_nodes().at(i)->def().name();
     }
   }
 
@@ -125,8 +124,9 @@ Status Executor::Run() {
     OpKernelContext::Params params;
     
     auto device_name = node->def().device();
-    Device* device = openmi::Register<DeviceFactory>::Find(device_name)->func();
-    CHECK(device != nullptr) << "deivce not exist. device:" << device_name;
+    const DeviceFactory* device_factory = openmi::Register<DeviceFactory>::Find(device_name);
+    CHECK(device_factory != nullptr) << "deivce not exist. device:" << device_name;
+    Device* device = device_factory->func();
     params.device = device;
     
     params.session_state = &session_state_;
@@ -137,10 +137,10 @@ Status Executor::Run() {
     params.related_node_name = node->node_info().related_node_name;
 
     if (node->outputs().size() > 0) {
-      LOG(DEBUG) << "output.at(0): " << node->outputs().at(0) << ", node:" << node->def().name();
+      DLOG(INFO) << "output.at(0): " << node->outputs().at(0) << ", node:" << node->def().name();
     }
 
-    LOG(INFO) << "node.name: [" << node->def().name() << "], op: " << node->def().op() << ", related_node: " << node->node_info().related_node_name;
+    DLOG(INFO) << "node.name: [" << node->def().name() << "], op: " << node->def().op() << ", related_node: " << node->node_info().related_node_name;
     OpKernelContext* ctx = new OpKernelContext(&params);
     node->op()->Compute(ctx);
 

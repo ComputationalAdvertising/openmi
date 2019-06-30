@@ -30,7 +30,6 @@ endfunction()
 #add_program("tensor_shape_test")
 #add_program("tensor_test") 
 
-#add_program("core_framework_gradients_test")
 #add_program("core_framework_node_manager_test")
 #add_program("core_framework_op_test")
 

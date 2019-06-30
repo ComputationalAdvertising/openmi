@@ -67,6 +67,10 @@ public:
 
   NodeDef& def() { return ninfo_.node_def; }
   NodeInfo& node_info() { return ninfo_; }
+
+  std::string& related_node_name() {
+    return ninfo_.related_node_name;
+  }
   
   void set_op(OpKernel* op) { op_.reset(op); }
   OpKernel* op() { return op_.get(); }
@@ -125,7 +129,7 @@ public:
   std::vector<Node*>& global_topo_nodes() { return global_topo_nodes_; }
   std::vector<Node*>& reversed_nodes() { return reversed_nodes_; }
   std::vector<Node*>& variable_nodes() { return variable_nodes_; }
-  std::vector<Node*>& variable_gradient_nodes() { return variable_gradient_nodes_; }
+  std::vector<Node*>& reversed_variable_nodes() { return reversed_variable_nodes_; }
   std::vector<Node*>& sink_nodes() { return sink_nodes_; }
   std::vector<Node*>& global_sink_nodes() { return global_sink_nodes_; }
 
@@ -140,7 +144,7 @@ private:
   std::string name_;
   // Graph version 
   int version_;
-  // Map from node ids to allcated nodes. 
+  // All allcated nodes. 
   std::vector<Node*> nodes_;
   // Allocated but free nodes and edges.
   std::vector<Node*> free_nodes_;
@@ -150,11 +154,11 @@ private:
   std::vector<Node*> reversed_nodes_;
   // All topo order nodes. it contains Forward and Reversed topo nodes.
   std::vector<Node*> global_topo_nodes_;
-  // Varibale Node respond to  Model Parameters that learning from ps.
-  // input nodes of gradients 
+  // Varibale nodes that respond to model parameter to be updated from ps.
   std::vector<Node*> variable_nodes_; 
-  std::vector<Node*> variable_gradient_nodes_; 
-  // sink nodes that not in all node deps 
+  // Reversed Variable nodes that respond to gradients of model parameter
+  std::vector<Node*> reversed_variable_nodes_; 
+  // Sink nodes that not in all node deps
   std::vector<Node*> sink_nodes_;
   std::vector<Node*> global_sink_nodes_;
 

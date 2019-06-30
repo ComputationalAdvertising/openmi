@@ -7,7 +7,7 @@
 
 namespace openmi {
 
-int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& input_nodes, std::vector<Node*>& reversed_node_list, Graph* g) {
+int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& input_nodes, Graph* g) {
   std::vector<Node*> used_backward_output_nodes;
   for (Node* n: output_nodes) {
     bool used_backward = true;
@@ -90,13 +90,13 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
 
   LOG(INFO) << "\n ------------------- generate grad node list done --------------------";
 
-  // Collect result for gradient requested 
-  reversed_node_list.clear();
+  // Collect reversed variable nodes that gradient node of model parameter
+  g->reversed_variable_nodes().clear();
   for (size_t i = 0; i < input_nodes.size(); ++i) {
     auto it = node_to_output_grad_mapper_.find(input_nodes[i]);
     CHECK(it != node_to_output_grad_mapper_.end())
       << input_nodes[i]->def().name() << " not in node_to_output_grad_mapper_";
-    reversed_node_list.push_back(it->second);
+    g->reversed_variable_nodes().push_back(it->second);
   }
 
   LOG(INFO) << "\n ------------------ gradients done ------------------";

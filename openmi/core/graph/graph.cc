@@ -55,7 +55,7 @@ Node* Graph::AddNode(NodeInfo& ninfo, Status* status) {
     variable_nodes_.push_back(node);
   }
 
-  DLOG(INFO) << "AddNode name:" << node_name;
+  DLOG(INFO) << __FUNCTION__ << " name:" << node_name;
   return node;
 }
 

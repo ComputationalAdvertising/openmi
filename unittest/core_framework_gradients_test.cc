@@ -34,16 +34,9 @@ int main(int argc, char** argv) {
   LOG(INFO) << "total nodes number of forward: " << node_mgr->TotalNodes().size();
 
   Gradients grad;
-  std::vector<Node*> rt;
-  int result = grad.gradients(output_nodes, input_nodes, rt, node_mgr.get());
+  int result = grad.gradients(output_nodes, input_nodes, node_mgr.get());
 
   LOG(INFO) << "total nodes number of forward and reverse: " << node_mgr->TotalNodes().size(); 
-
-  std::string grad_topo_nodes;
-  for (int i = 0; i < rt.size(); ++i) {
-    grad_topo_nodes += " --> " + rt[i]->Name();
-  }
-  LOG(INFO) << grad_topo_nodes;
 
   LOG(INFO) << "curr gid: " << (unsigned long) syscall(SYS_gettid);
 

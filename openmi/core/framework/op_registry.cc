@@ -78,6 +78,7 @@ OpRegistryHelper& OpRegistryHelper::TypeConstraint(DataType type) {
 }
 
 OPENMI_REGISTER_LINK_TAG(accumulate_n_op);
+OPENMI_REGISTER_LINK_TAG(assign_op);
 OPENMI_REGISTER_LINK_TAG(binary_add_op);
 OPENMI_REGISTER_LINK_TAG(binary_sub_op);
 OPENMI_REGISTER_LINK_TAG(binary_mul_op);
@@ -85,8 +86,8 @@ OPENMI_REGISTER_LINK_TAG(binary_div_op);
 OPENMI_REGISTER_LINK_TAG(binary_sigmoid_grad_op);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_binary);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_unary);
-OPENMI_REGISTER_LINK_TAG(assign_op);
 OPENMI_REGISTER_LINK_TAG(concat_op);
+OPENMI_REGISTER_LINK_TAG(embedding_lookup);
 OPENMI_REGISTER_LINK_TAG(matmul_op);
 OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
 OPENMI_REGISTER_LINK_TAG(oneslike_op);

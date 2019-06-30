@@ -70,12 +70,11 @@ void Iter(Executor& exec, int batch_size) {
   b->vec<float>().setConstant(0.00002);
   DLOG(INFO) << "Variable(b_layer1):\n" << b->vec<float>();
   
+  // 2. forward & backword
   LOG(INFO) << "================= [exec.run] ================= \n";
-  // y = 0.991998
   Status s = exec.Run();
 
   LOG(DEBUG) << "done";
-  // 2. forward & backword
 
   // 3. push gradients 
 }
@@ -89,8 +88,20 @@ int main(int argc, char** argv) {
   }
 
   Executor exec(gdef);
-  Iter(exec, 10);
-  Iter(exec, 3);
+  
+  for (Node* node: exec.g_.variable_nodes()) {
+    LOG(INFO) << "forward variable node: " << node->def().name();
+  }
+
+  for (Node* node: exec.g_.reversed_variable_nodes()) {
+    LOG(INFO) << "reversed variable node: " << node->def().name();
+  }
+
+  int batch_size = 10;
+  //Iter(exec, batch_size);
+
+  batch_size = 3;
+  // Iter(exec, batch_size);
 
   // 1. 获取所有的SourceNode节点
   
