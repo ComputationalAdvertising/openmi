@@ -37,7 +37,7 @@ void EmbeddingLookupOp<Device, T>::Compute(OpKernelContext* ctx) {
 
   auto W = in0.matrix<T>();
   auto X = in1.matrix<T>();
-  auto offset = in2.vec<int>();
+  auto offset = in2.vec<int>();   // row offset tensor
 
   TensorShape expected_out_shape;
   // length(offset) * embedding_size

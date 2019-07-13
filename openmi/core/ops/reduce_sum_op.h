@@ -22,6 +22,7 @@ public:
       bcast_dims[i] = in_dims[i] == 1 ? out_dims[i] : 1;
       if (bcast_dims[i] != 1) {
         is_bcast = true;
+        break;
       }
     }
     

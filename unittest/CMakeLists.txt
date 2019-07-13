@@ -34,6 +34,7 @@ endfunction()
 #add_program("core_framework_op_test")
 
 add_program("core_ops_cwise_ops_binary_test")
+add_program("core_ops_embedding_lookup_test")
 add_program("core_ops_softmax_cross_entropy_with_logits_op_functor_test")
 add_program("core_ops_softmax_op_functor_test")
 add_program("core_common_runtime_local_device_test")

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.4)
 
 project(openmi-core)
 
-set(CMAKE_VERBOSE_MAKEFILE on)
+set(CMAKE_VERBOSE_MAKEFILE off)
 
 set(BASIC_CXXFLAGS "-std=c++11 -g -O3 -Wall -fPIC")
 set(BASIC_CPPDEFINES "-DHAVE_NETINET_IN_H") 
