@@ -105,6 +105,10 @@ public:
 
   ~Graph() {}
 
+  void Destroy() {
+    // TODO
+  }
+
   Node* AddNode(NodeInfo& ninfo, Status* status);
 
   // TODO opti api 

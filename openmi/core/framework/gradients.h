@@ -2,6 +2,7 @@
 #define OPENMI_CORE_FRAMEWORK_GRADIENTS_H_  
 
 #include "graph.h"
+#include "session_state.h"
 
 namespace openmi {
 
@@ -11,7 +12,8 @@ public:
 
   int gradients(std::vector<Node*>& output_nodes, 
                 std::vector<Node*>& input_nodes, 
-                Graph* g);
+                Graph* g,
+                SessionState* session_state);
 
   Node* SumGradients(std::vector<Node*>& node_list, Graph* g);
 

@@ -92,16 +92,16 @@ void tensor_contract_test() {
   LOG(INFO) << "a:\n" << a;
   LOG(INFO) << "b:\n" << b;
   
-  Eigen::array<Eigen::IndexPair<int>, 1> product_dims = { Eigen::IndexPair<int>(1, 0) };
+  Eigen::array<Eigen::IndexPair<int>, 1> product_dims = {{Eigen::IndexPair<int>(1, 0)}};
   Eigen::Tensor<int, 2> ab = a.contract(b, product_dims);
   LOG(INFO) << "ab:\n" << ab;
 
   // Compute the product of the transpose of the matrices
-  Eigen::array<Eigen::IndexPair<int>, 1> transposed_product_dims = { Eigen::IndexPair<int>(0, 0)  };
+  Eigen::array<Eigen::IndexPair<int>, 1> transposed_product_dims = {{Eigen::IndexPair<int>(0, 0)}};
   Eigen::Tensor<int, 2> AtBt = a.contract(b, transposed_product_dims);
   LOG(INFO) << "aTbT:\n" << AtBt;
 
-  Eigen::array<Eigen::IndexPair<int>, 2> double_contraction_product_dims = { Eigen::IndexPair<int>(0, 0), Eigen::IndexPair<int>(1, 1)  };
+  Eigen::array<Eigen::IndexPair<int>, 2> double_contraction_product_dims = {{Eigen::IndexPair<int>(0, 0), Eigen::IndexPair<int>(1, 1)}};
   Eigen::Tensor<int, 0> AdoubleContractedA = a.contract(a, double_contraction_product_dims);
   LOG(INFO) << "AdoubleContractedA:\n" << AdoubleContractedA;
   

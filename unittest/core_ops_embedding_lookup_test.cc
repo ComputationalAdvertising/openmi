@@ -17,19 +17,22 @@ void SegmentSumOpImpl(typename TTypes<T>::Matrix in, typename TTypes<int32_t>::V
   Eigen::array<Eigen::DenseIndex, NDIMS> start({{0,0}});
   Eigen::array<Eigen::DenseIndex, NDIMS> extent({{1,embedding_size}});
   Eigen::array<Eigen::DenseIndex, NDIMS> reshape_dim({{1,embedding_size}});
+  int prev_offset = 0;
 
   for (auto i = 0; i < offset.dimension(0); ++i) {
-    start_idx[0] = start_idx[0] + extent_idx[0];
-    extent_idx[0] = offset(i);
+    int value_size = offset(i) - prev_offset;
+    prev_offset = offset(i);
+    extent_idx[0] = value_size;
     start[0] = i;
-    if (offset(i) == 1) {
+    if (value_size == 1) {
       out.slice(start, extent) = in.slice(start_idx, extent_idx);
     } else {
       out.slice(start, extent) = in.slice(start_idx, extent_idx).sum(axis).eval().reshape(reshape_dim);
     }
-    DLOG(INFO) << "index:" << i << ", sum pooling:\n" << out.slice(start, extent);
+    start_idx[0] = start_idx[0] + extent_idx[0];
+    DLOG(INFO) << "index:" << i << ", value_size:" << value_size << ", sum pooling:\n" << out.slice(start, extent);
   }
-  DLOG(INFO) << "out:\n" << out;
+  DLOG(INFO) << __FUNCTION__ << " out:\n" << out;
 }
 
 /*!
@@ -46,9 +49,11 @@ void SegmentSumGradOpImpl(typename TTypes<T>::Matrix dY, typename TTypes<int32_t
   Eigen::array<Eigen::DenseIndex, NDIMS> start({{0,0}});
   Eigen::array<Eigen::DenseIndex, NDIMS> extent({{0,embedding_size}});
   Eigen::array<Eigen::DenseIndex, NDIMS> bcast_dims({{1,1}});
+  int32_t prev_offset = 0;
 
   for (auto i = 0; i < offset.dimension(0); ++i) {
-    int value_size = offset(i);
+    int value_size = offset(i) - prev_offset;
+    prev_offset = offset(i);
     start_idx[0] = i;
     start[0] = start[0] + extent[0];
     extent[0] = value_size;
@@ -59,8 +64,8 @@ void SegmentSumGradOpImpl(typename TTypes<T>::Matrix dY, typename TTypes<int32_t
     bcast_dims[0] = value_size;
     dX.slice(start, extent) = dY.slice(start_idx, extent_idx).broadcast(bcast_dims).eval();
     DLOG(INFO) << "index: " << i << ", dX:\n" << dX.slice(start, extent);
-  }
-  DLOG(INFO) << "SegmentSumGradOp dX:\n" << dX;
+  } 
+  DLOG(INFO) << __FUNCTION__ << " dX:\n" << dX;
 }
 
 /*!
@@ -80,17 +85,18 @@ void SegmentMeanOpImpl(typename TTypes<T>::Matrix in, typename TTypes<int32_t>::
   Eigen::array<Eigen::DenseIndex, NDIMS> reshape_dim({{1,embedding_size}});
 
   for (auto i = 0; i < offset.dimension(0); ++i) {
-    start_idx[0] = start_idx[0] + extent_idx[0];
-    extent_idx[0] = offset(i);
+    int value_size = offset(i) - start_idx[0];
+    extent_idx[0] = value_size;
     start[0] = i;
-    if (offset(i) == 1) {
+    if (value_size == 1) {
       out.slice(start, extent) = in.slice(start_idx, extent_idx);
     } else {
       out.slice(start, extent) = in.slice(start_idx, extent_idx).mean(axis).eval().reshape(reshape_dim);
     }
-    DLOG(INFO) << "index:" << i << ", mean pooling:\n" << out.slice(start, extent);
+    start_idx[0] = start_idx[0] + extent_idx[0];
+    DLOG(INFO) << "index:" << i << ", value_size:" << value_size << ", mean pooling:\n" << out.slice(start, extent);
   }
-  DLOG(INFO) << "SegmentMeanOpImpl out:\n" << out;
+  DLOG(INFO) << __FUNCTION__ << " out:\n" << out;
 }
 
 /*!
@@ -107,9 +113,11 @@ void SegmentMeanGradOpImpl(typename TTypes<T>::Matrix dY, typename TTypes<int32_
   Eigen::array<Eigen::DenseIndex, NDIMS> start({{0,0}});
   Eigen::array<Eigen::DenseIndex, NDIMS> extent({{0,embedding_size}});
   Eigen::array<Eigen::DenseIndex, NDIMS> bcast_dims({{1,1}});
+  int32_t prev_offset = 0;
 
   for (auto i = 0; i < offset.dimension(0); ++i) {
-    int value_size = offset(i);
+    int value_size = offset(i) - prev_offset;
+    prev_offset = offset(i);
     start_idx[0] = i;
     start[0] = start[0] + extent[0];
     extent[0] = value_size;
@@ -118,10 +126,10 @@ void SegmentMeanGradOpImpl(typename TTypes<T>::Matrix dY, typename TTypes<int32_
       continue;
     }
     bcast_dims[0] = value_size;
-    dX.slice(start, extent) = (1.0 / value_size) * dY.slice(start_idx, extent_idx).broadcast(bcast_dims).eval();
+    dX.slice(start, extent) = 1.0 / value_size * dY.slice(start_idx, extent_idx).broadcast(bcast_dims).eval();
     DLOG(INFO) << "index: " << i << ", dX:\n" << dX.slice(start, extent);
-  }
-  DLOG(INFO) << "SegmentMeanGradOp dX:\n" << dX;
+  } 
+  DLOG(INFO) << __FUNCTION__ << " dX:\n" << dX;
 }
 
 
@@ -178,13 +186,20 @@ int main(int argc, char** argv) {
   x.tensor<float, NDIMS>().setConstant(2.4);
   LOG(INFO) << "x:\n" << x.tensor<float, 1>() << ", size: " << x.shape().NumElements();
 
+  // 每个ins在batch index 中的offset累计
   std::string offset_shape("10");
   Tensor& row_offset = test::CreateTensor(offset_shape, 1, DT_INT32);
   row_offset.tensor<int32_t, 1>().setConstant(1);
-  row_offset.tensor<int32_t, 1>()(0) = 3;
-  row_offset.tensor<int32_t, 1>()(1) = 2;
-  row_offset.tensor<int32_t, 1>()(2) = 2;
-  row_offset.tensor<int32_t, 1>()(9) = 7;
+  row_offset.tensor<int32_t, 1>()(0) = 1;
+  row_offset.tensor<int32_t, 1>()(1) = 3;
+  row_offset.tensor<int32_t, 1>()(2) = 4;
+  row_offset.tensor<int32_t, 1>()(3) = 7;
+  row_offset.tensor<int32_t, 1>()(4) = 8;
+  row_offset.tensor<int32_t, 1>()(5) = 9;
+  row_offset.tensor<int32_t, 1>()(6) = 10;
+  row_offset.tensor<int32_t, 1>()(7) = 11;
+  row_offset.tensor<int32_t, 1>()(8) = 12;
+  row_offset.tensor<int32_t, 1>()(9) = 20;
   LOG(INFO) << "row_offset:\n" << row_offset.tensor<int32_t, 1>() << ", size: " << row_offset.shape().NumElements(); 
 
   std::string result_shape("10,2");
@@ -203,7 +218,7 @@ int main(int argc, char** argv) {
   auto WX = wx.matrix<T>();
   WX = W * X.broadcast(bcast_dims);
   LOG(INFO) << "WX:\n" << WX;
-  //SegmentSumOpImpl<T, NDIMS>(WX, offset, out);
+  // SegmentSumOpImpl<T, NDIMS>(WX, offset, out);
   SegmentMeanOpImpl<T, NDIMS>(WX, offset, out);
   LOG(INFO) << "result.matrix<T>:\n" << result.matrix<T>();
 

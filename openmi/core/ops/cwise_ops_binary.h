@@ -73,8 +73,8 @@ struct BinaryElementWiseOp : public BinaryOp<T, BinaryElementWiseOp<Device, FUNC
   auto X1 = in1.tensor<T, NDIMS>();
   auto Y = out.tensor<T, NDIMS>();
 
-  DLOG(INFO) << "X0:\n" << X0; 
-  DLOG(INFO) << "X1:\n" << X1; 
+  DLOG(INFO) << "X0: " << context->inputs().at(0) << ", value:\n" << X0;
+  DLOG(INFO) << "X1: " << context->inputs().at(1) << ", value:\n" << X1;
 
   Eigen::array<Eigen::DenseIndex, NDIMS> lreshape_dims, rreshape_dims, lbcast_dims, rbcast_dims;
   for (int i = 0; i < NDIMS; ++i) {

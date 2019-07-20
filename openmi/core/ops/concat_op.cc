@@ -9,7 +9,7 @@ void ConcatOpImpl(OpKernelContext* ctx) {
   Eigen::array<int, NDIMS> offset;
 
   auto& in0_shape = ctx->input(0).shape();
-  for (int i = 0; i < in0_shape.Dims(); ++i) {
+  for (int i = 0; i < NDIMS; ++i) {
     startIdx[i] = 0;
     offset[i] = in0_shape.DimSize(i);
   }
@@ -20,12 +20,16 @@ void ConcatOpImpl(OpKernelContext* ctx) {
 
   for (int i = 1; i < ctx->inputs().size(); ++i) {
     auto& ini = ctx->input(i);
-    startIdx[NDIMS - 1] = startIdx[NDIMS - 1] + ini.shape().DimSize(NDIMS - 1);
+    // startIdx[NDIMS - 1] = startIdx[NDIMS - 1] + ini.shape().DimSize(NDIMS - 1);
+    startIdx[NDIMS - 1] = startIdx[NDIMS - 1] + offset[NDIMS - 1];
     offset[NDIMS - 1] = ini.shape().DimSize(NDIMS - 1);
     Y.slice(startIdx, offset) = ini.tensor<T, NDIMS>();
   } 
 }
 
+/*!
+ * \brief according to [rank-1] dims exec concat
+ */
 template <typename Device, typename T>
 class ConcatOp : public OpKernel {
 public:

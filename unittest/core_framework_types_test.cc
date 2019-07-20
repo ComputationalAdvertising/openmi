@@ -34,14 +34,14 @@ int main() {
   printf("DF_DOUBLE: %s\n", DataTypeString(DT_DOUBLE).c_str());
   std::string r = DataTypeString(DT_INT8);
   printf("DT_INT8: %s\n", r.c_str());
-  printf("size of DF_FLOAT: %d\n", SizeOfType(DT_FLOAT));
-  printf("size of DF_DOUBLE: %d\n", SizeOfType(DT_DOUBLE));
-  printf("size of DF_INT8_T: %d\n", SizeOfType(DT_INT8));
+  printf("size of DF_FLOAT: %zu\n", SizeOfType(DT_FLOAT));
+  printf("size of DF_DOUBLE: %zu\n", SizeOfType(DT_DOUBLE));
+  printf("size of DF_INT8_T: %zu\n", SizeOfType(DT_INT8));
 
-  printf("size of float: %f\n", sizeof(typename AccumulatorType<float>::type));
-  printf("size of double: %f\n", sizeof(typename AccumulatorType<double>::type));
+  printf("size of float: %lu\n", sizeof(typename AccumulatorType<float>::type));
+  printf("size of double: %lu\n", sizeof(typename AccumulatorType<double>::type));
 
-  printf("size of float: %f\n", sizeof(typename EnumToDataType<DT_FLOAT>::T));
-  printf("size of double: %f\n", sizeof(EnumToDataType<DT_DOUBLE>::T));
+  printf("size of float: %lu\n", sizeof(typename EnumToDataType<DT_FLOAT>::T));
+  printf("size of double: %lu\n", sizeof(EnumToDataType<DT_DOUBLE>::T));
   return 0;
 }

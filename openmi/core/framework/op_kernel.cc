@@ -12,7 +12,15 @@ void OpKernel::Initialize(OpKernelConstruction* context) {
 
 OpKernelContext::OpKernelContext(Params* params): params_(params) {}
 
-OpKernelContext::~OpKernelContext() {}
+OpKernelContext::~OpKernelContext() {
+  Destroy();
+}
+
+void OpKernelContext::Destroy() {
+  if (params_) {
+    delete params_; params_ = nullptr;
+  }
+}
 
 template <>
 const Eigen::ThreadPoolDevice& OpKernelContext::eigen_device() const {

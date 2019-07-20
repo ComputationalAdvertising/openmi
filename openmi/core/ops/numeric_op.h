@@ -3,6 +3,7 @@
 
 #include "op_kernel.h"
 #include "op_registry.h"
+#include "tensor_utils.h"
 
 namespace openmi {
 
@@ -31,7 +32,9 @@ public:
     if (!out.IsInitialized() || out.shape() != expected_out_shape) {
       out.AllocateTensor(expected_out_shape);
     }
-    DLOG(INFO) << "in.name: " << context->inputs().at(0) << ", out.name: " << context->name() << ", related_node[" << context->related_node_name()
+    DLOG(INFO) << "in.name[" << context->inputs().at(0) 
+               << "], out.name[" << context->name() 
+               << "], related_node[" << context->related_node_name()
                << "], out_shape[" << expected_out_shape.DebugString() << "]";
   
     size_t max_dims = std::max(in.shape().Dims(), out.shape().Dims());
@@ -56,11 +59,13 @@ public:
         break;     
     }
   }
+private: 
+  bool init_ = false;
 }; // class UnaryOp 
 
 
 /*!
- * \brief General Binary Operator
+ * \brief General Binary Operator that not Initialize
  */
 template <typename T, typename CHILD>
 class BinaryOp : public OpKernel {

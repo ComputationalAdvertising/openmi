@@ -4,7 +4,7 @@
 
 Tensor* GetTensor(Executor& exec, std::string name) {
   Tensor* t = nullptr;
-  Status status = exec.session_state_.GetTensor(name, &t);
+  Status status = exec.GetSessionState()->GetTensor(name, &t);
   return t;
 }
 

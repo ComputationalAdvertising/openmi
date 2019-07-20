@@ -1,6 +1,7 @@
 #include "executor.h"
 #include "algorithm.h"
 #include "device.h"
+#include "graph_utils.h"
 #include "device_registry.h"
 #include "base/register.h"
 #include <set>
@@ -11,32 +12,66 @@ bool is_training = true;
 
 namespace openmi {
 
-void FindSinkNodes(Graph& g, std::vector<Node*>& sink_nodes, bool used_back_props = false) {
-  // find output nodes 
-  std::set<std::string> exist_outputs;
-  std::set<std::string> all_node_keys;
-  auto it = g.node_mapper().begin();
-  while (it != g.node_mapper().end()) {
-    Node* n = it->second;
-    all_node_keys.insert(n->def().name());
-    for (size_t idx = 0; idx < n->inputs().size(); ++idx) {
-      exist_outputs.insert(n->inputs()[idx]);
-    }
-    it++;
+Executor::Executor(proto::GraphDef& gdef) 
+  : g_(nullptr),
+    gradients_(nullptr),
+    session_state_(nullptr) {
+  Init(gdef);
+}
+
+Executor::~Executor() {
+  Destroy();
+}
+
+void Executor::Init(proto::GraphDef& gdef) {
+  g_ = std::make_shared<Graph>();
+  Status status = ConvertGraphDefToGraph(&gdef, g_.get());
+  // only forward node
+  FindSinkNodes(g_.get(), g_->sink_nodes());
+  TopoOrderList(g_->sink_nodes(), g_->forward_topo_nodes(), g_.get());
+
+  // TODO CHECK DAG  
+  
+  // Gradients that only training phase, not contain inference phase
+  if (is_training) {
+    std::vector<Node*>& input_nodes = g_->variable_nodes();
+    std::vector<Node*>& output_nodes = g_->sink_nodes();
+
+    gradients_ = std::make_shared<Gradients>();
+    session_state_ = std::make_shared<SessionState>();
+    int result = gradients_->gradients(output_nodes, input_nodes, g_.get(), session_state_.get());
+    CHECK(result == 0) << "gradients process failed when training task.";
+
+    // refound sink nodes that contain reversed node
+    FindSinkNodes(g_.get(), g_->global_sink_nodes());
+    TopoOrderList(g_->global_sink_nodes(), g_->global_topo_nodes(), g_.get());
+    
+    DebugGraphNodes(g_.get());
   }
 
-  std::set<std::string>::iterator iter;
-  for (iter = all_node_keys.begin(); iter != all_node_keys.end(); iter++) {
-    if (exist_outputs.find(*iter) == exist_outputs.end()) {
-      auto it = g.node_mapper().find(*iter);
-      CHECK(it != g.node_mapper().end()) << *iter << " not in node_mapper in graph";
-      sink_nodes.push_back(it->second);
-    }
+  InitSessionState();
+  InitComputeOp();
+
+  LOG(INFO) << "global nodes size:" << g_->global_topo_nodes().size() 
+            << ", forward nodes size:" << g_->forward_topo_nodes().size()
+            << ", backward nodes size:" << g_->reversed_nodes().size();
+  LOG(INFO) << "Executor init successfully.";
+}
+
+void Executor::Destroy() {
+  auto it = node_kernel_context_mapper_.begin();
+  for (; it != node_kernel_context_mapper_.end(); ++it) {
+    it->second->Destroy();
+    delete it->second;
+    it->second = nullptr;
   }
+  node_kernel_context_mapper_.clear();
+
+  g_->Destroy();
 }
 
 void Executor::InitSessionState() {
-  for (auto& kv: g_.node_mapper()) {
+  for (auto& kv: g_->node_mapper()) {
     DataType type = DT_FLOAT;
     auto it = kv.second->attrs().find("type");
     if (it != kv.second->attrs().end()) {
@@ -44,80 +79,60 @@ void Executor::InitSessionState() {
       type = it->second.type;
     }
 
+    std::string node_name = kv.second->def().name();
     Tensor* tensor;
     it = kv.second->attrs().find("shape");
     if (it != kv.second->attrs().end() && 
         it->second.attr_type == ::openmi::AttrValue::kShape) {
       tensor = new Tensor(type, it->second.shape);
+      DLOG(INFO) << node_name << ", shape:" << it->second.shape.DebugString();
     } else {
       tensor = new Tensor(type);
     }
 
-    LOG(INFO) << __FUNCTION__ << ". node name: " << kv.second->def().name() << ", is init: " << tensor->IsInitialized();
-    if (tensor->IsInitialized()) {
-      DLOG(INFO) << "tensor shape: " << tensor->shape().DebugString();
-    }
-    session_state_.AddTensor(kv.second->def().name(), tensor);
+    session_state_->AddTensor(node_name, tensor);
+
+    DLOG(INFO) << __FUNCTION__ << "node name: " << node_name << " init tensor done.";
   }
 }
 
-Executor::Executor(proto::GraphDef& gdef) {
-  Status status = ConvertGraphDefToGraph(&gdef, &g_);
+void Executor::InitComputeOp() {
+  compute_nodes_ = is_training ? g_->global_topo_nodes() : g_->forward_topo_nodes();
+  for (auto& node: compute_nodes_) {
+    OpKernelConstruction okc(node->def().name(), node->attrs());
+    node->op()->Initialize(&okc);
 
-  // not contain reversed node
-  FindSinkNodes(g_, g_.sink_nodes());
-  
-  TopoOrderList(g_.sink_nodes(), g_.forward_topo_nodes(), &g_);
+    OpKernelContext::Params* params_ptr = new OpKernelContext::Params();
+    auto device = node->def().device();
+    const DeviceFactory* device_factory = openmi::Register<DeviceFactory>::Find(device);
+    CHECK(device_factory != nullptr) << "device not exists. device:" << device;
+    params_ptr->device = device_factory->func();
+    params_ptr->session_state = session_state_.get();
+    params_ptr->op_kernel = node->op();
+    params_ptr->node_def = &node->def();
+    params_ptr->input_name = node->inputs();
+    params_ptr->output_name = node->outputs();
+    params_ptr->related_node_name = node->node_info().related_node_name;
 
-  // TODO CHECK DAG  
-  
-  // TODO for test
-  DLOG(INFO) << "forward topo nodes of graph: ";
-  for (int i = 0; i < g_.forward_topo_nodes().size(); ++i) {
-    DLOG(INFO) << i << "th. node_name: " << g_.forward_topo_nodes()[i]->def().name();
+    DLOG(INFO) << "node def:\n" << params_ptr->node_def->DebugString();
+    OpKernelContext* context = new OpKernelContext(params_ptr);
+    node_kernel_context_mapper_.insert({node->def().name(), context});
   }
-  
-  if (is_training) {
-    // Gradients that only training phase, not contain inference phase
-    // TODO IF not training, pass it;
-    std::vector<Node*>& input_nodes = g_.variable_nodes();
-    std::vector<Node*>& output_nodes = g_.sink_nodes();
-
-    int result = gradients_.gradients(output_nodes, input_nodes, &g_);
-
-    if (result != 0) {
-      LOG(FATAL) << "gradients process failed.";
-    }
-
-    // re-found sink nodes that contain reversed node
-    FindSinkNodes(g_, g_.global_sink_nodes());
-
-    for (int i = 0; i < g_.global_sink_nodes().size(); ++i) {
-      DLOG(INFO) << "global sink nodes i[" << i << "] node_name: " << g_.global_sink_nodes().at(i)->def().name();
-      if (g_.global_sink_nodes().at(i)->outputs().size() > 0) {
-        DLOG(INFO) << "outputs(0): " << g_.global_sink_nodes().at(i)->outputs().at(0);
-      }
-    }
-
-    TopoOrderList(g_.global_sink_nodes(), g_.global_topo_nodes(), &g_);
-
-    DLOG(INFO) << "after topology order list.";
-    for (int i = 0; i < g_.global_topo_nodes().size(); ++i) {
-      DLOG(INFO) << "global topo node. i[" << i << "], node_name: " << g_.global_topo_nodes().at(i)->def().name();
-    }
-  }
-
-  InitSessionState();
-
-  LOG(INFO) << "Executor init successfully.";
 }
 
-Executor::~Executor() {
+SessionState* Executor::GetSessionState() {
+  CHECK(session_state_ != nullptr);
+  return session_state_.get();
+}
+
+Graph* Executor::GetGraph() {
+  CHECK(g_ != nullptr);
+  return g_.get();
 }
 
 Status Executor::Run() {
-  auto& computed_nodes = is_training ? g_.global_topo_nodes() : g_.forward_topo_nodes();
-  for (auto& node: computed_nodes) {
+  for (auto& node: compute_nodes_) {
+    /*
     OpKernelConstruction okc(node->def().name(), node->attrs());
     node->op()->Initialize(&okc);
     
@@ -140,11 +155,19 @@ Status Executor::Run() {
       DLOG(INFO) << "output.at(0): " << node->outputs().at(0) << ", node:" << node->def().name();
     }
 
-    DLOG(INFO) << "node.name: [" << node->def().name() << "], op: " << node->def().op() << ", related_node: " << node->node_info().related_node_name;
+    DLOG(INFO) << "node.name: [" << node->def().name() << "], op: " << node->def().op();
+    // 思考：是否每次都需要new OpKernelContext呢？？？
     OpKernelContext* ctx = new OpKernelContext(&params);
-    node->op()->Compute(ctx);
-
-    // TODO  delete ctx
+    // 设计一个 map<node, OpKernelContext>，没必要每次都初始化OpKernelContext
+    */
+    DLOG(INFO) << node->def().DebugString();
+    auto it = node_kernel_context_mapper_.find(node->def().name());
+    CHECK(it != node_kernel_context_mapper_.end()) 
+      << "OpKernelContext not exists. node:" << node->def().DebugString();
+    OpKernelContext* context = it->second;
+    CHECK(context != nullptr);
+    DLOG(INFO) << "node:" << context->name() << ", relate node:" << context->related_node_name();
+    node->op()->Compute(context);
   }
 
   // TODO reversed process 

@@ -7,7 +7,7 @@
 
 namespace openmi {
 
-int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& input_nodes, Graph* g) {
+int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& input_nodes, Graph* g, SessionState* session_state) {
   std::vector<Node*> used_backward_output_nodes;
   for (Node* n: output_nodes) {
     bool used_backward = true;
@@ -67,9 +67,12 @@ int Gradients::gradients(std::vector<Node*>& output_nodes, std::vector<Node*>& i
  
     GradConstructor grad_constructor;
     GradientRegistry::Instance().Lookup(n->def().op(), &grad_constructor);
-    grad_constructor(*n, dy, dx_list, *g);
-
-    DLOG(INFO) << "its input size: " << n->inputs().size();
+    grad_constructor(*n, dy, dx_list, *g, *session_state);
+    
+    CHECK(dx_list.size() == n->inputs().size()) << "size not equal. " 
+      << "dx_list size:" << dx_list.size() 
+      << ", n->inputs size:" << n->inputs().size();
+    
     if (n->outputs().size() > 0) {
       DLOG(INFO) << "n.outputs[0]: " << n->outputs().at(0);
     }

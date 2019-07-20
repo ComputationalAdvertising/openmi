@@ -181,8 +181,8 @@ public:
   }
 
 private:
-  DataType type_;
   TensorShape shape_;
+  DataType type_;
   std::shared_ptr<Allocator> alloc_;
   std::shared_ptr<TensorBuffer> buf_;
   bool is_initialized_ = false;

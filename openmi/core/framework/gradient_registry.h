@@ -4,6 +4,7 @@
 #include "base/register.h"
 #include "base/singleton.h"
 #include "graph.h"
+#include "session_state.h"
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -13,7 +14,8 @@ namespace openmi {
 typedef void (*GradConstructor)(Node& node, 
                                 std::vector<Node*>& dy_list, 
                                 std::vector<Node*>& dx_list, 
-                                Graph& g);
+                                Graph& g,
+                                SessionState& session_state);
 
 /*!
  * \brief Register gradient constructor. not gradient op

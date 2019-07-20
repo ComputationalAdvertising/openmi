@@ -8,7 +8,6 @@
 #include "device.h"
 #include "status.h"
 #include "session_state.h"
-#include "tensor_utils.h"
 #include "openmi/idl/proto/node_def.pb.h"
 #include "openmi/idl/proto/types.pb.h"
 #include "base/logging.h"
@@ -75,6 +74,8 @@ public:
   explicit OpKernelContext(Params* params);
 
   ~OpKernelContext();
+
+  void Destroy();
 
   OpKernel& op_kernel() { return *params_->op_kernel; }
 

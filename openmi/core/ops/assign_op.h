@@ -9,8 +9,33 @@ template <typename Device, typename T>
 class AssignOp : public UnaryOp<T, AssignOp<Device, T>> {
 public:
   template <int NDIMS>
+  void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
+    size_t in_rank_size = in.shape().Dims();
+    size_t out_rank_size = out.shape().Dims();
+    DLOG(INFO) << "tensor shape. in: " << in.shape().DebugString() << ", out: " << out.shape().DebugString();
+    if (in_rank_size > out_rank_size) {
+      ReduceRun<NDIMS>(context, in, out);
+    } else if (in_rank_size < out_rank_size) {
+      BroadcastRun<NDIMS>(context, in, out);
+    } else {
+      bool is_reduce = false;
+      for (size_t i = 0; i < in_rank_size; i++) {
+        if (in.shape().DimSize(i) > out.shape().DimSize(i)) {
+          is_reduce = true;
+        }
+      }
+      if (is_reduce) {
+        ReduceRun<NDIMS>(context, in, out);
+      } else {
+        AssignEqualRun<NDIMS>(context, in, out);
+      }
+    }
+  }
+
+private:
+  template <int NDIMS>
   void ReduceRun(OpKernelContext* context, Tensor& in, Tensor& out) {
-    LOG(DEBUG) << "ReduceRun name: " << context->name();
+    DLOG(INFO) << __FUNCTION__ << " name: " << context->name();
     Eigen::array<Eigen::DenseIndex, NDIMS> in_dims, out_dims;
     ReshapeTensor<NDIMS>(in, in_dims);
     ReshapeTensor<NDIMS>(out, out_dims);
@@ -31,12 +56,12 @@ public:
     auto d = context->eigen_device<Device>();
     Y.device(d) = X.sum(depth_dim).eval().reshape(out_dims);
 
-    LOG(DEBUG) << context->name() << ", Y:\n" << Y;
+    DLOG(INFO) << context->name() << ", Y:\n" << Y;
   }
 
   template <int NDIMS>
   void BroadcastRun(OpKernelContext* context, Tensor& in, Tensor& out) {
-    LOG(DEBUG) << "BroadcastRun name: " << context->name();
+    DLOG(INFO) << __FUNCTION__ << " name: " << context->name();
     Eigen::array<Eigen::DenseIndex, NDIMS> in_dims, out_dims, bcast_dims;
     ReshapeTensor<NDIMS>(in, in_dims);
     ReshapeTensor<NDIMS>(out, out_dims);
@@ -50,7 +75,7 @@ public:
     auto d = context->eigen_device<Device>();
     Y.device(d) = X.broadcast(bcast_dims);
     
-    LOG(DEBUG) << context->name() << ", Y:\n" << Y;
+    DLOG(INFO) << context->name() << ", Y:\n" << Y;
   }
 
   template <int NDIMS>
@@ -64,31 +89,7 @@ public:
     auto d = context->eigen_device<Device>();
     Y.device(d) = X;
 
-    LOG(DEBUG) << context->name() << ", Y:\n" << Y;
-  }
-
-  template <int NDIMS>
-  void Operate(OpKernelContext* context, Tensor& in, Tensor& out) {
-    size_t in_rank_size = in.shape().Dims();
-    size_t out_rank_size = out.shape().Dims();
-    LOG(DEBUG) << "in: " << in.shape().DebugString() << ", out: " << out.shape().DebugString();
-    if (in_rank_size > out_rank_size) {
-      ReduceRun<NDIMS>(context, in, out);
-    } else if (in_rank_size < out_rank_size) {
-      BroadcastRun<NDIMS>(context, in, out);
-    } else {
-      bool is_reduce = false;
-      for (size_t i = 0; i < in_rank_size; i++) {
-        if (in.shape().DimSize(i) > out.shape().DimSize(i)) {
-          is_reduce = true;
-        }
-      }
-      if (is_reduce) {
-        ReduceRun<NDIMS>(context, in, out);
-      } else {
-        AssignEqualRun<NDIMS>(context, in, out);
-      }
-    }
+    DLOG(INFO) << context->name() << ", Y:\n" << Y;
   }
 }; // class AssignOp
 

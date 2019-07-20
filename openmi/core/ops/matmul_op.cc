@@ -30,6 +30,7 @@ void MatMulOp<Device, T>::Initialize(OpKernelConstruction* ctx) {
   ctx->GetAttr<bool>("transpose_b", &transpose_b_);
   dim_pair_[0].first = transpose_a_ ? 0 : 1;
   dim_pair_[0].second = transpose_b_ ? 1 : 0;
+  DLOG(INFO) << __FUNCTION__ << " test_test, transpose_a:" << transpose_a_ << ", transpose_b:" << transpose_b_;
 }
 
 template <typename Device, typename T>

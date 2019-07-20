@@ -17,12 +17,14 @@ OpRegistrationEntry* OpRegistrationData::FindEntry(const std::string device, Dat
 }
 
 void OpRegistry::RegisterOp(std::string name, OpRegistrationEntry* entry) {
-  LOG(INFO) << "OpRegistry::RegisterOp name: " << name;
+  std::string register_info = "op_name:" + name 
+    + ", device:" + entry->device 
+    + ", type:" + DataType_Name(entry->allow_type); 
+  LOG(INFO) << "OpRegistry::RegisterOp name: " << register_info;
   auto iter = op_kernel_mapper_.find(name);
   if (iter != op_kernel_mapper_.end()) {
     CHECK(iter->second.FindEntry(entry->device, entry->allow_type) == nullptr) 
-      << "<op_name, device> has already registry. op_name:" 
-      << name << ", device:" << entry->device; 
+      << "<op_name, device> has already registry. " << register_info;
     iter->second.entrys.insert(entry);
   } else {
     OpRegistrationData op_reg_data;
@@ -51,8 +53,10 @@ Status OpRegistry::LookUp(Node& node, OpKernel** op_kernel) {
   }
   */
   CHECK(entry != nullptr)
-    << "op device info not exist. " << "op_name[" << node.def().op() 
-    << "], device[" << node.def().device() << "]";
+    << "op info not exist. node_name[" << node.def().name() 
+    << "], op_name[" << node.def().op() 
+    << "], device[" << node.def().device() 
+    << "], type[" << DataType_Name(type) << "]";
 
   *op_kernel = entry->body();
 
@@ -78,7 +82,6 @@ OpRegistryHelper& OpRegistryHelper::TypeConstraint(DataType type) {
 }
 
 OPENMI_REGISTER_LINK_TAG(accumulate_n_op);
-OPENMI_REGISTER_LINK_TAG(assign_op);
 OPENMI_REGISTER_LINK_TAG(binary_add_op);
 OPENMI_REGISTER_LINK_TAG(binary_sub_op);
 OPENMI_REGISTER_LINK_TAG(binary_mul_op);
@@ -87,17 +90,17 @@ OPENMI_REGISTER_LINK_TAG(binary_sigmoid_grad_op);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_binary);
 OPENMI_REGISTER_LINK_TAG(cwise_ops_unary);
 OPENMI_REGISTER_LINK_TAG(concat_op);
-OPENMI_REGISTER_LINK_TAG(embedding_lookup);
 OPENMI_REGISTER_LINK_TAG(matmul_op);
 OPENMI_REGISTER_LINK_TAG(matmul_grad_op);
+OPENMI_REGISTER_LINK_TAG(nothing_op);
 OPENMI_REGISTER_LINK_TAG(oneslike_op);
-OPENMI_REGISTER_LINK_TAG(no_gradient_op);
 OPENMI_REGISTER_LINK_TAG(reduce_sum_op);
+OPENMI_REGISTER_LINK_TAG(register_ops);
+OPENMI_REGISTER_LINK_TAG(segment_op);
 OPENMI_REGISTER_LINK_TAG(sigmoid_op);
 OPENMI_REGISTER_LINK_TAG(sigmoid_cross_entropy_with_logits);
 OPENMI_REGISTER_LINK_TAG(slice_op);
 OPENMI_REGISTER_LINK_TAG(softmax_cross_entropy_with_logits);
 OPENMI_REGISTER_LINK_TAG(softmax_op);
-OPENMI_REGISTER_LINK_TAG(Variable);
 
 } // namespace openmi

@@ -8,12 +8,19 @@ Tensor::Tensor(): Tensor(DT_FLOAT) {}
 Tensor::Tensor(DataType type): type_(type) {}
 
 Tensor::Tensor(DataType type, const TensorShape& shape) 
-  : type_(type), shape_(shape), alloc_(nullptr) {
+  : shape_(shape), type_(type), alloc_(nullptr) {
+  CHECK(shape.NumElements() > 0) 
+    << "element number of tensor must be great than 0. "
+    << "tensor shape: " << shape.DebugString();
   Init();
 }
 
 Tensor::Tensor(Allocator* alloc, DataType type, const TensorShape& shape)
-  : type_(type), shape_(shape), alloc_(alloc) {
+  : shape_(shape), type_(type), alloc_(alloc) {
+  CHECK(alloc != nullptr) << "alloc is nullptr when new Tensor.";
+  CHECK(shape.NumElements() > 0) 
+    << "element number of tensor must be great than 0. "
+    << "tensor shape: " << shape.DebugString();
   Init();
 }
 
