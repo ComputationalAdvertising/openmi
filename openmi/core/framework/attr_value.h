@@ -18,6 +18,8 @@ struct AttrValue {
     kType,
     kShape,
     kTensor,
+    kFeaturetype,
+    kSourceNodeType
   };
 
   AttrType attr_type;
@@ -28,6 +30,8 @@ struct AttrValue {
   proto::DataType type;
   TensorShape shape; 
   Tensor tensor;
+  proto::FeatureType feature_type;
+  proto::SourceNodeType source_node_type;
 
   void FromProto(const proto::AttrValue& value);
   proto::AttrValue ToProto();

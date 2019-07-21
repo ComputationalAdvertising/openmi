@@ -53,6 +53,19 @@ Node* CreateGradNode(const std::string& node_name, const std::string& op,
   return grad_node;
 }
 
+void FindSourceNodes(Graph* g, std::vector<Node*>& source_nodes) {
+  // find input nodes
+  source_nodes.clear();
+  auto it = g->node_mapper().begin();
+  while (it != g->node_mapper().end()) {
+    Node* n = it->second;
+    if (n->inputs().empty()) {
+      source_nodes.push_back(n);
+    }
+    it++;
+  }
+}
+
 void FindSinkNodes(Graph* g, std::vector<Node*>& sink_nodes, bool used_back_props) {
   // find output nodes 
   std::set<std::string> exist_outputs;

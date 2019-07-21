@@ -27,6 +27,8 @@ extern void FindSinkNodes(Graph* g,
                           std::vector<Node*>& sink_nodes, 
                           bool used_back_props = false);
 
+extern void FindSourceNodes(Graph* g, std::vector<Node*>& source_nodes);
+
 extern void DebugGraphNodes(Graph* g);
 
 } // namespace openmi 

@@ -19,7 +19,7 @@ void AttrValue::FromProto(const proto::AttrValue& attr) {
     case proto::AttrValue::kF: 
       {
         this->attr_type = kFloat;
-        this->b = attr.f();
+        this->f = attr.f();
         break;
       }
     case proto::AttrValue::kB: 
@@ -44,6 +44,18 @@ void AttrValue::FromProto(const proto::AttrValue& attr) {
       {
         this->attr_type = kTensor;
         //this->tensor = Tensor(attr.tensor());
+        break;
+      }
+    case proto::AttrValue::kFeatureType: 
+      {
+        this->attr_type = kFeaturetype;
+        this->feature_type = attr.feature_type();
+        break;
+      }
+    case proto::AttrValue::kSourceNodeType: 
+      {
+        this->attr_type = kSourceNodeType;
+        this->source_node_type = attr.source_node_type();
         break;
       }
     case proto::AttrValue::VALUE_NOT_SET:

@@ -129,6 +129,7 @@ public:
   int version() const { return version_; }
 
   std::vector<Node*>& nodes() { return nodes_; }
+  std::vector<Node*>& source_nodes() { return source_nodes_; }
   std::vector<Node*>& forward_topo_nodes() { return forward_topo_nodes_; }
   std::vector<Node*>& global_topo_nodes() { return global_topo_nodes_; }
   std::vector<Node*>& reversed_nodes() { return reversed_nodes_; }
@@ -148,10 +149,12 @@ private:
   std::string name_;
   // Graph version 
   int version_;
-  // All allcated nodes. 
+  // All allcated nodes.
   std::vector<Node*> nodes_;
   // Allocated but free nodes and edges.
   std::vector<Node*> free_nodes_;
+  // Source nodes that no deps
+  std::vector<Node*> source_nodes_;
   // Forward topo order list.
   std::vector<Node*> forward_topo_nodes_;
   // Reversed nodes 

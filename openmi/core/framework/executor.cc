@@ -27,6 +27,7 @@ void Executor::Init(proto::GraphDef& gdef) {
   g_ = std::make_shared<Graph>();
   Status status = ConvertGraphDefToGraph(&gdef, g_.get());
   // only forward node
+  FindSourceNodes(g_.get(), g_->source_nodes());
   FindSinkNodes(g_.get(), g_->sink_nodes());
   TopoOrderList(g_->sink_nodes(), g_->forward_topo_nodes(), g_.get());
 
@@ -34,12 +35,12 @@ void Executor::Init(proto::GraphDef& gdef) {
   
   // Gradients that only training phase, not contain inference phase
   if (is_training) {
-    std::vector<Node*>& input_nodes = g_->variable_nodes();
+    std::vector<Node*>& input_variable_nodes = g_->variable_nodes();
     std::vector<Node*>& output_nodes = g_->sink_nodes();
 
     gradients_ = std::make_shared<Gradients>();
     session_state_ = std::make_shared<SessionState>();
-    int result = gradients_->gradients(output_nodes, input_nodes, g_.get(), session_state_.get());
+    int result = gradients_->gradients(output_nodes, input_variable_nodes, g_.get(), session_state_.get());
     CHECK(result == 0) << "gradients process failed when training task.";
 
     // refound sink nodes that contain reversed node
@@ -52,9 +53,11 @@ void Executor::Init(proto::GraphDef& gdef) {
   InitSessionState();
   InitComputeOp();
 
-  LOG(INFO) << "global nodes size:" << g_->global_topo_nodes().size() 
-            << ", forward nodes size:" << g_->forward_topo_nodes().size()
-            << ", backward nodes size:" << g_->reversed_nodes().size();
+  LOG(INFO) << "global nodes size[" << g_->global_topo_nodes().size() 
+            << "], source nodes size[" << g_->source_nodes().size()
+            << "], sink nodes size[" << g_->sink_nodes().size()
+            << "], forward nodes size[" << g_->forward_topo_nodes().size()
+            << "], backward nodes size[" << g_->reversed_nodes().size() << "]";
   LOG(INFO) << "Executor init successfully.";
 }
 

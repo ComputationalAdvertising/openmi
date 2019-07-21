@@ -122,5 +122,25 @@ inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, const std:
   }
 }
 
+inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, const std::string& key, proto::FeatureType* v, bool allow_not_found = true) {
+  auto it = attr.find(key);
+  if (!allow_not_found) {
+    CHECK(it != attr.end()) << "attr '" << key << "' not exists. please check graph def.";
+  }
+  if (it != attr.end()) {
+    *v = it->second.feature_type;
+  }
+}
+
+inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, const std::string& key, proto::SourceNodeType* v, bool allow_not_found = true) {
+  auto it = attr.find(key);
+  if (!allow_not_found) {
+    CHECK(it != attr.end()) << "attr '" << key << "' not exists. please check graph def.";
+  }
+  if (it != attr.end()) {
+    *v = it->second.source_node_type;
+  }
+}
+
 } // namespace openmi
 #endif // OPENMI_CORE_FRAMEWORK_ATTR_VALUE_UTILS_H_

@@ -1,4 +1,5 @@
 #include "executor.h"
+#include "attr_value_utils.h"
 #include "base/protobuf_op.h"
 #include "base/logging.h"
 
@@ -110,70 +111,17 @@ void Iter(Executor& exec, int batch_size) {
   LOG(INFO) << "================= [exec.run] ================= \n";
   Status s = exec.Run();
 
-  LOG(DEBUG) << "done";
-}
-
-void Iter1(Executor& exec, int batch_size) {
-  // 1. update source nodes. such as W/b/embedding
-  LOG(INFO) << "================= [placeholder embedding] ================= \n";
-  const int rank = 2;
-  int column_size = 8;
-
-  std::vector<uint64_t> batch_dims;
-  batch_dims.push_back(batch_size);
-  batch_dims.push_back(column_size);
-  
-  Tensor* c1_embed = GetTensor(exec, "c1_embed");
-  Tensor* c2_embed = GetTensor(exec, "c2_embed");
-  Tensor* c3_embed = GetTensor(exec, "c3_embed");
-
-  InitColEmbedding(&c1_embed, batch_dims, 2, 0.01);
-  InitColEmbedding(&c2_embed, batch_dims, 2, -0.02);
-  InitColEmbedding(&c3_embed, batch_dims, 2, 0.03);
-  
-  LOG(INFO) << "================= [placeholder linear] ================= \n";
-  std::vector<uint64_t> linear_batch_dims;
-  linear_batch_dims.push_back(batch_size);
-  linear_batch_dims.push_back(1L);
-
-  Tensor* c1_linear = GetTensor(exec, "c1_linear");
-  Tensor* c3_linear = GetTensor(exec, "c3_linear");
-
-  InitColEmbedding(&c1_linear, linear_batch_dims, 2, 0.0001);
-  InitColEmbedding(&c3_linear, linear_batch_dims, 2, 0.0003);
-  
-  LOG(INFO) << "================= [label] ================= \n";
-  int num_label_dim = 1;
-  Tensor* label = GetTensor(exec, "label");
-  
-  std::vector<uint64_t> label_dims;
-  label_dims.push_back(batch_size);
-  label_dims.push_back(num_label_dim);
-
-  TensorShape lshape(label_dims);
-  label->AllocateTensor(lshape);
-  
-  label->tensor<float, rank>().setConstant(1);
-  label->tensor<float, rank>()(0, 0) = 0;
-  DLOG(INFO) << "label:\n" << label->tensor<float, rank>();
-
-  LOG(INFO) << "================= [w_layer1] ================= \n";
-  Tensor* w = GetTensor(exec, "w_layer1");
-  w->tensor<float, rank>().setConstant(0.03);
-  DLOG(INFO)  << "Variable(w_layer1):\n" << w->tensor<float, rank>();
-
-  LOG(INFO) << "================= [b_layer1] ================= \n";
-  Tensor* b = GetTensor(exec, "b_layer1");
-  b->vec<float>().setConstant(0.00002);
-  DLOG(INFO) << "Variable(b_layer1):\n" << b->vec<float>();
-  
-  // 2. forward & backword
-  LOG(INFO) << "================= [exec.run] ================= \n";
-  Status s = exec.Run();
+  LOG(INFO) << "================= [after run. get grad info] ================= \n";
+  for (Node* node: exec.GetGraph()->reversed_variable_nodes()) {
+    std::string grad_node_name = node->def().name();
+    std::string related_node_name = node->related_node_name();
+    Tensor* grad = GetTensor(exec, grad_node_name);
+    LOG(INFO) << "grad node:" << grad_node_name << ", related_node_name:" << related_node_name;
+    LOG(INFO) << "value:\n" << grad->matrix<float>();
+    LOG(INFO) << "its shape: " << grad->shape().DebugString();
+  }
 
   LOG(DEBUG) << "done";
-
-  // 3. push gradients 
 }
 
 int main(int argc, char** argv) {
@@ -185,7 +133,41 @@ int main(int argc, char** argv) {
   }
 
   Executor exec(gdef);
-  
+
+  // 获取source node信息，用于与engine的交互和数据填充；
+  std::unordered_map<int, std::vector<std::string>> colid2node_w_mapper_;
+  std::unordered_map<int, std::string> colid2node_x_mapper_;
+  std::unordered_map<int, std::string> colid2node_offset_mapper_;
+
+  for (Node* node: exec.GetGraph()->source_nodes()) {
+    std::string node_name = node->def().name();
+    SourceNodeType source_node_type;
+    GetAttr(node->attrs(), "source_node_type", &source_node_type);
+    int colid = -1;
+    GetAttr(node->attrs(), "col_id", &colid);
+    LOG(INFO) << "source node:" << node_name << ", type:" << SourceNodeType_Name(source_node_type) << ", col_id:" << colid;
+
+    if (source_node_type == proto::W) {
+      LOG(INFO) << "W. colid:" << colid << ", node name:" << node_name;
+      std::vector<std::string> w_vars;
+      if (colid2node_w_mapper_.find(colid) != colid2node_w_mapper_.end()) {
+        w_vars = colid2node_w_mapper_[colid];
+      }
+      w_vars.push_back(node_name);
+      colid2node_w_mapper_.insert({colid, w_vars});
+    }
+
+    if (source_node_type == proto::X) {
+      LOG(INFO) << "X. colid:" << colid << ", node name:" << node_name;
+      colid2node_x_mapper_.insert({colid, node_name});
+    }
+
+    if (source_node_type == proto::OFFSET) {
+      LOG(INFO) << "OFFSET. colid:" << colid << ", node name:" << node_name;
+      colid2node_offset_mapper_.insert({colid, node_name});
+    }
+  }
+
   for (Node* node: exec.GetGraph()->variable_nodes()) {
     LOG(INFO) << "forward variable node: " << node->def().name();
   }
@@ -194,11 +176,9 @@ int main(int argc, char** argv) {
     LOG(INFO) << "reversed variable node: " << node->def().name();
   }
 
-  int batch_size = 10;
+  int batch_size = 5;
   Iter(exec, batch_size);
-
-  batch_size = 3;
-  // Iter(exec, batch_size);
+  Iter(exec, batch_size*2);
 
   // 1. 获取所有的SourceNode节点
   
