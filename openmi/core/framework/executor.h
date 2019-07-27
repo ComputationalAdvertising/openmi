@@ -18,27 +18,32 @@ namespace openmi {
 class Executor {
 public:
   explicit Executor(proto::GraphDef& gdef);
-  
   ~Executor();
 
-  Status Run();
+  void Init(proto::GraphDef& gdef);
+  
+  void Destroy();
 
   SessionState* GetSessionState();
 
   Graph* GetGraph();
+
+  proto::GraphDef& GetGraphDef();
+
+  Status Run();
   
 private:
-  void Init(proto::GraphDef& gdef);
   void InitSessionState();
   void InitComputeOp();
-  void Destroy();
 
 private:
+  proto::GraphDef gdef_;
   std::shared_ptr<Graph> g_;
   std::shared_ptr<Gradients> gradients_;
   std::shared_ptr<SessionState> session_state_;
   std::unordered_map<std::string, OpKernelContext*> node_kernel_context_mapper_;
-  std::vector<Node*> compute_nodes_;
+  // todo optimized. support parallel compute when no-dependency node
+  std::vector<Node*> compute_nodes_;  
 }; // class Executor 
 
 } // namespace openmi

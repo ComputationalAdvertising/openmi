@@ -1,7 +1,12 @@
 #include "executor.h"
+#include "session.h"
 #include "attr_value_utils.h"
+#include "openmi/idl/proto/engine.pb.h"
 #include "base/protobuf_op.h"
 #include "base/logging.h"
+#include <unordered_set>
+
+using namespace openmi;
 
 Tensor* GetTensor(Executor& exec, std::string name) {
   Tensor* t = nullptr;
@@ -124,6 +129,13 @@ void Iter(Executor& exec, int batch_size) {
   LOG(DEBUG) << "done";
 }
 
+void VariableGradTest(std::unordered_map<std::string, Tensor*>& node2tensor_) {
+  LOG(INFO) << "all valid source node.";
+  for (auto it = node2tensor_.begin(); it != node2tensor_.end(); it++) {
+    LOG(INFO) << "node: " + it->first << ", shape: " << it->second->shape().DebugString();
+  }
+}
+
 int main(int argc, char** argv) {
   const char* file = "unittest/conf/wide_and_deep_graph_demo.conf";
   proto::GraphDef gdef;
@@ -132,55 +144,16 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  Executor exec(gdef);
+  Session sess;
+  sess.Init(gdef);
 
-  // 获取source node信息，用于与engine的交互和数据填充；
-  std::unordered_map<int, std::vector<std::string>> colid2node_w_mapper_;
-  std::unordered_map<int, std::string> colid2node_x_mapper_;
-  std::unordered_map<int, std::string> colid2node_offset_mapper_;
-
-  for (Node* node: exec.GetGraph()->source_nodes()) {
-    std::string node_name = node->def().name();
-    SourceNodeType source_node_type;
-    GetAttr(node->attrs(), "source_node_type", &source_node_type);
-    int colid = -1;
-    GetAttr(node->attrs(), "col_id", &colid);
-    LOG(INFO) << "source node:" << node_name << ", type:" << SourceNodeType_Name(source_node_type) << ", col_id:" << colid;
-
-    if (source_node_type == proto::W) {
-      LOG(INFO) << "W. colid:" << colid << ", node name:" << node_name;
-      std::vector<std::string> w_vars;
-      if (colid2node_w_mapper_.find(colid) != colid2node_w_mapper_.end()) {
-        w_vars = colid2node_w_mapper_[colid];
-      }
-      w_vars.push_back(node_name);
-      colid2node_w_mapper_.insert({colid, w_vars});
-    }
-
-    if (source_node_type == proto::X) {
-      LOG(INFO) << "X. colid:" << colid << ", node name:" << node_name;
-      colid2node_x_mapper_.insert({colid, node_name});
-    }
-
-    if (source_node_type == proto::OFFSET) {
-      LOG(INFO) << "OFFSET. colid:" << colid << ", node name:" << node_name;
-      colid2node_offset_mapper_.insert({colid, node_name});
-    }
-  }
-
-  for (Node* node: exec.GetGraph()->variable_nodes()) {
-    LOG(INFO) << "forward variable node: " << node->def().name();
-  }
-
-  for (Node* node: exec.GetGraph()->reversed_variable_nodes()) {
-    LOG(INFO) << "reversed variable node: " << node->def().name();
-  }
-
+  Executor* exec = sess.GetExecutor().get();
+  
   int batch_size = 5;
-  Iter(exec, batch_size);
-  Iter(exec, batch_size*2);
+  Iter(*exec, batch_size);
+  Iter(*exec, batch_size*2);
 
-  // 1. 获取所有的SourceNode节点
+  // 1. 获取所有的SourceNode节点 (理应包括所有的reversed variable node)
   
   LOG(DEBUG) << "done";
   

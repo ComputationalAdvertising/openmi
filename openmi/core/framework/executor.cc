@@ -24,6 +24,7 @@ Executor::~Executor() {
 }
 
 void Executor::Init(proto::GraphDef& gdef) {
+  gdef_ = gdef;
   g_ = std::make_shared<Graph>();
   Status status = ConvertGraphDefToGraph(&gdef, g_.get());
   // only forward node
