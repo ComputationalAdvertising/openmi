@@ -13,7 +13,7 @@ int Session::Init(proto::GraphDef& gdef) {
     return -1;
   }
   
-  if (GetGraphNode() != 0) {
+  if (ParseGraphSourceNode() != 0) {
     LOG(ERROR) << "get graph node from inited executor failed.";
     return -1;
   }
@@ -24,7 +24,7 @@ void Session::Destroy() {
   executor_->Destroy();
 }
 
-int Session::GetGraphNode() {
+int Session::ParseGraphSourceNode() {
   for (Node* node: executor_->GetGraph()->source_nodes()) {
     std::string node_name = node->def().name();
   
@@ -60,6 +60,7 @@ int Session::GetGraphNode() {
         return -1;
       }
       column2node_.insert({colid, column_node});
+      valid_columns_.push_back(colid);
     }
 
     SourceNodeType source_node_type;
@@ -90,7 +91,114 @@ int Session::GetGraphNode() {
       << ", reverse nn variable size:" << reverse_nn_size;
     return -1; 
   }
+
+  if (CheckColumnNode() != 0) {
+    LOG(INFO) << "column node from graph is illegal.";
+    return -1;
+  }
+
   return 0;
 }
 
+int Session::CheckColumnNode() {
+  auto it = column2node_.begin();
+  while (it != column2node_.end()) {
+    auto column_node = it->second;
+    if (column_node->x() == "") {
+      LOG(ERROR) << "column node 'x' name is empty. column node:\n" << column_node->DebugString();
+      return -1;
+    }
+    if (column_node->row_offset() == "") {
+      LOG(ERROR) << "column node 'row_offset' name is empty. column node:\n" << column_node->DebugString();
+      return -1;
+    }
+    if (column_node->w_size() == 0) {
+      LOG(ERROR) << "column node 'w' name is empty. column node:\n" << column_node->DebugString();
+      return -1;
+    }
+    it++;
+  }
+  return 0;
 }
+
+int Session::FeedSourceNode(InstancesPtr& batch) {
+  LOG(INFO) << "valid column size:" << valid_columns_.size();
+  for (auto i = 0; i < valid_columns_.size(); ++i) {
+    auto colid = valid_columns_[i];
+    if (FeedColumnNode(batch, colid, 8) != 0) {
+      LOG(ERROR) << "feed column node failed. column id:" << valid_columns_[i];
+      return -1;
+    }
+  }
+  return 0;
+}
+
+//int continuous_feature_size = ins.continuous_feature_size();
+//如何优雅的填充连续特征？
+int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid) {
+  return 0;
+}
+
+int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid, int embedding_size) {
+  LOG(INFO) << "feed colid: " << colid; 
+  auto column_node = column2node_[colid];
+  auto x_node_name = column_node->x();
+  auto w_node_name = column_node->w(0);
+  auto row_offset_node_name = column_node->row_offset();
+
+  LOG(INFO) << "x_node_name:" << x_node_name
+            << ", w_node_name:" << w_node_name 
+            << ", row_offset_node_name:" << row_offset_node_name;
+
+  int batch_size = batch->instance_size();
+  Tensor* row_offset = node2tensor_[row_offset_node_name];
+  std::string offset_shape_s = std::to_string(batch_size);
+  TensorShape offset_shape(offset_shape_s);
+  row_offset->AllocateTensor(offset_shape);
+
+  std::vector<float> x_values;
+  std::vector<std::vector<float>> w_values;
+
+  int32_t offset = 0;
+  for (int i = 0; i < batch_size; ++i) {
+    auto ins = batch->instance(i);
+    int32_t count = 0;
+    int discrete_feature_size = ins.feature_size();
+    for (int j = 0; j < discrete_feature_size; ++j) {
+      auto fea = ins.feature(j);
+      if (fea.colid() != colid) {
+        continue;
+      }
+      count += 1;
+      x_values.push_back(fea.weight());
+      auto fid = fea.fid();
+      // TODO fill W
+    }
+    // fill default 0
+    if (count == 0) {  
+      count = 1;
+      x_values.push_back(0);
+    }
+
+    offset += count;
+    row_offset->vec<uint32_t>()(i) = offset;
+  }
+
+  LOG(INFO) << "row_offset:\n" << row_offset->vec<uint32_t>();
+
+  Tensor* x = node2tensor_[x_node_name];
+  std::string x_shape_s = std::to_string(x_values.size()) + ",1";
+  TensorShape x_shape(x_shape_s);
+  x->AllocateTensor(x_shape);
+  // TODO 使用指针和size初始化tensor。 这里暂时使用原始方法；
+  auto x_value_size = x_values.size();
+  for (int idx = 0; idx < x_value_size; ++idx) {
+    x->tensor<float, 2>()(idx, 0) = x_values[idx];
+  }
+
+  LOG(INFO) << "x:\n" << x->tensor<float, 2>();  
+
+  return 0;
+}
+
+} // namespace openmi

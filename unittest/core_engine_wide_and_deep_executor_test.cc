@@ -145,14 +145,30 @@ int main(int argc, char** argv) {
   }
 
   Session sess;
-  sess.Init(gdef);
+  if (sess.Init(gdef) != 0) {
+    LOG(ERROR) << "session init failed.";
+    return -1;
+  }
 
   Executor* exec = sess.GetExecutor().get();
   
-  int batch_size = 5;
-  Iter(*exec, batch_size);
-  Iter(*exec, batch_size*2);
+  // int batch_size = 5;
+  // Iter(*exec, batch_size);
+  // Iter(*exec, batch_size*2);
 
+  InstancesPtr instances = std::make_shared<proto::Instances>();
+  for (int i = 0; i < 10; ++i) {
+    auto ins1 = instances->add_instance();
+    int f_size = 10;
+    for (int j = 0; j < f_size; ++j) {
+      auto f = ins1->add_feature();
+      f->set_colid(j%3 + 1);
+      f->set_fid((j+1)*1000);
+      f->set_weight((j+1)*0.1);
+    }
+  }
+  sess.FeedSourceNode(instances);
+  
   // 1. 获取所有的SourceNode节点 (理应包括所有的reversed variable node)
   
   LOG(DEBUG) << "done";
