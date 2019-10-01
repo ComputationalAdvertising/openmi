@@ -157,17 +157,26 @@ int main(int argc, char** argv) {
   // Iter(*exec, batch_size*2);
 
   InstancesPtr instances = std::make_shared<proto::Instances>();
+  std::unordered_map<uint64_t, proto::internal::ValList> model_weights;
   for (int i = 0; i < 10; ++i) {
     auto ins1 = instances->add_instance();
     int f_size = 10;
     for (int j = 0; j < f_size; ++j) {
       auto f = ins1->add_feature();
-      f->set_colid(j%3 + 1);
-      f->set_fid((j+1)*1000);
+      f->set_colid(j);
       f->set_weight((j+1)*0.1);
+      uint64_t fid = (j*1000 + j);
+      f->set_fid(fid);
+      
+      proto::internal::ValList val_list;
+      for (int k = 0; k < 9; ++k) {
+        val_list.add_val(j*0.1);
+      }
+      model_weights.insert({fid, val_list});
     }
   }
-  sess.FeedSourceNode(instances);
+  
+  sess.FeedSourceNode(instances, model_weights);
   
   // 1. 获取所有的SourceNode节点 (理应包括所有的reversed variable node)
   

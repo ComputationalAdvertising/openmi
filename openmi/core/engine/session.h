@@ -1,6 +1,7 @@
 #ifndef OPENMI_CORE_ENGINE_SESSION_H_
 #define OPENMI_CORE_ENGINE_SESSION_H_ 
 
+#include "base/bit_op.h" // GetFid, GetNodeIdx, GetRowIdx
 #include "openmi/idl/proto/instance.pb.h"
 #include "openmi/idl/proto/engine.pb.h"
 #include "openmi/idl/proto/graph.pb.h"
@@ -10,6 +11,7 @@ using namespace openmi;
 namespace openmi {
 
 typedef std::shared_ptr<proto::internal::ColumnNode> ColumnNodePtr;
+typedef std::shared_ptr<proto::internal::ColumnWeightSchema> ColumnWeightSchemaPtr;
 typedef std::shared_ptr<Executor> ExecutorPtr;
 typedef std::shared_ptr<proto::Instances> InstancesPtr;
 
@@ -27,9 +29,14 @@ public:
 
   int Run();
 
-  int FeedSourceNode(InstancesPtr& batch);
+  // source node 包括column和nn node
+  int FeedSourceNode(InstancesPtr& batch, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
+
   int FeedColumnNode(InstancesPtr& batch, uint32_t colid);
-  int FeedColumnNode(InstancesPtr& batch, uint32_t colid, int embedding_size);
+  // column node
+  int FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
+  // nn node
+  int FeedNNNode(int node_idx, std::string& nn_node_name, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
 
   int GetGradientResult();
 

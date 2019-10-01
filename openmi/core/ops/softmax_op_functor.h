@@ -45,7 +45,7 @@ struct SoftmaxImpl {
       // Calculate the log og the softmax 
       // softmax = \log { \frac {\exp(logits)} {\sum_{k=1}^K \exp(logits)} } 
       //         = logits - \log { \sum_{k=1}^K \exp(logits) }
-      //         = shifted_logits - sum(exp(shifted_logits))
+      //         = shifted_logits - log(sum(exp(shifted_logits)))
       softmax.device(d) = shifted_logits;
       softmax.device(d) = (softmax - 
                            softmax.exp()
@@ -55,7 +55,7 @@ struct SoftmaxImpl {
                             .log()
                             .broadcast(one_by_class));
     } else {
-      // softmax = \frac {\exp(logits)} {\sum_{k=1}^K \exp(logits)}
+      // softmax = \frac {\exp(shifted_logits)} {\sum_{k=1}^K \exp(shifted_logits)}
       softmax.device(d) = shifted_logits.exp();
       softmax.device(d) = (softmax * 
                            softmax.sum(along_class)
