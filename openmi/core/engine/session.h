@@ -31,24 +31,26 @@ public:
 
   // source node 包括column和nn node
   int FeedSourceNode(InstancesPtr& batch, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
-
-  int FeedColumnNode(InstancesPtr& batch, uint32_t colid);
-  // column node
-  int FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
-  // nn node
-  int FeedNNNode(int node_idx, std::string& nn_node_name, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
-
-  int GetGradientResult();
+  int GetGradient();
 
 private: 
   int ParseGraphSourceNode();
   int CheckColumnNode();
+  
+  int FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
+  int FeedNNNode(int node_idx, std::string& nn_node_name, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights);
+  int FeedLabelNode(InstancesPtr& batch);
+
+  int GetColumnGradient(int colid);
+  int GetNNGradient(int idx, std::string& node_name);
 
 private:
   ExecutorPtr executor_;
   std::vector<int> valid_columns_;
   std::unordered_map<int, ColumnNodePtr> column2node_;
   std::unordered_map<std::string, Tensor*> node2tensor_;
+
+  std::array<proto::internal::ColumnKeyIndexList*, 1000> column_key_indexes_;
   std::vector<std::string> forward_nn_variable_;
   std::vector<std::string> reverse_nn_variable_;
   std::vector<std::string> label_node_;

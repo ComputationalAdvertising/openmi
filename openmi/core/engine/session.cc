@@ -45,7 +45,14 @@ int Session::ParseGraphSourceNode() {
       }
       if (node->node_info().node_scope == NS_FORWARD && !is_label) {
         forward_nn_variable_.push_back(node_name);
-        reverse_nn_variable_.push_back(node->related_node_name());
+        std::string related_node_name = node->related_node_name();
+        reverse_nn_variable_.push_back(related_node_name);
+        if (node2tensor_.find(related_node_name) == node2tensor_.end()) {
+          Tensor* t = nullptr;
+          executor_->GetSessionState()->GetTensor(related_node_name, &t);
+          CHECK(t != nullptr) << "tensor not found from session state. related node name: " << related_node_name;
+          node2tensor_.insert({related_node_name, t});
+        }
       }
       continue;
     }
@@ -136,6 +143,7 @@ int Session::CheckColumnNode() {
 int Session::FeedSourceNode(InstancesPtr& batch, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights) {
   // feed column node
   for (auto i = 0; i < valid_columns_.size(); ++i) {
+    // TODO parallel
     auto colid = valid_columns_[i];
     if (FeedColumnNode(batch, colid, model_weights) != 0) {
       LOG(ERROR) << "feed column node failed. column id:" << valid_columns_[i];
@@ -150,14 +158,44 @@ int Session::FeedSourceNode(InstancesPtr& batch, std::unordered_map<uint64_t, pr
       return -1;
     }
   }
+
+  // feed label node
+  // TODO is_training全局初始化 
+  bool is_training = true;
+  if (is_training) {
+    FeedLabelNode(batch);
+  }
+  return 0;
+}
+
+int Session::FeedLabelNode(InstancesPtr& batch) {
+  for (size_t i = 0; i < label_node_.size(); ++i) {
+    auto label_node_name = label_node_[i];
+    auto* label = node2tensor_[label_node_name];
+    int batch_size = batch->instance_size();
+    // TODO shape需要支持多标签
+    std::string label_shape_s = std::to_string(batch_size) + ",1";
+    TensorShape label_shape(label_shape_s);
+    LOG(INFO) << "label shape:" << label_shape.DebugString();
+    label->AllocateTensor(label_shape);
+    LOG(INFO) << "allocate tensor done";
+    for (int row_idx = 0; row_idx < batch_size; ++row_idx) {
+      auto ins = batch->instance(row_idx);
+      CHECK(ins.label().labels_size() > 0);
+      auto Y = ins.label().labels(0);
+      LOG(INFO) << "Y:" << Y;
+      label->tensor<float, 2>()(row_idx, 0) = Y;
+    }
+    LOG(INFO) << "label_node_name:" << label_node_name << ", tensor:\n" << label->tensor<float, 2>();
+  }
   return 0;
 }
 
 //int continuous_feature_size = ins.continuous_feature_size();
 //如何优雅的填充连续特征？
-int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid) {
-  return 0;
-}
+// int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid) {
+//   return 0;
+// }
 
 int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_map<uint64_t, proto::internal::ValList>& model_weights) {
   LOG(INFO) << "feed colid: " << colid; 
@@ -172,23 +210,27 @@ int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_
     LOG(INFO) << "w_node_name [" << i << "]: " << column_node->w(i);
   }
 
+  proto::internal::ColumnKeyIndexList* column_key_index = new proto::internal::ColumnKeyIndexList();
+
   int batch_size = batch->instance_size();
   Tensor* row_offset = node2tensor_[row_offset_node_name];
   std::string offset_shape_s = std::to_string(batch_size);
   TensorShape offset_shape(offset_shape_s);
   row_offset->AllocateTensor(offset_shape);
 
-  // batch下同一个column对应大于batch size的取值
+  LOG(INFO) << "row offset init done. shape:" << offset_shape.DebugString();
+
+  // column multi-hot value
   std::vector<float> x_values;
   // 同一个column对应的多个w 顺序是固定的
   std::vector<uint64_t> fids;
 
   int32_t offset = 0;
   for (int i = 0; i < batch_size; ++i) {
+    auto* key_index = column_key_index->add_key_index();
     auto ins = batch->instance(i);
     int32_t count = 0;
-    int discrete_feature_size = ins.feature_size();
-    for (int j = 0; j < discrete_feature_size; ++j) {
+    for (int j = 0; j < ins.feature_size(); ++j) {
       auto fea = ins.feature(j);
       if (fea.colid() != colid) {
         continue;
@@ -197,6 +239,7 @@ int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_
       x_values.push_back(fea.weight());
       auto fid = fea.fid();
       fids.push_back(fid);
+      key_index->add_keys(fid);
     }
 
     // fill default 0
@@ -208,6 +251,8 @@ int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_
     offset += count;
     row_offset->vec<uint32_t>()(i) = offset;
   }
+
+  column_key_indexes_[colid] = column_key_index;
 
   LOG(INFO) << "row_offset:\n" << row_offset->vec<uint32_t>();
 
@@ -224,7 +269,6 @@ int Session::FeedColumnNode(InstancesPtr& batch, uint32_t colid, std::unordered_
   LOG(INFO) << "x:\n" << x->tensor<float, 2>();  
 
   // fill node [w]s
-  std::unordered_map<int, Tensor*> index2w;
   for (int k = 0; k < column_node->w_size(); ++k) {
     // for each node w
     auto w_node_name = column_node->w(k);
@@ -271,7 +315,7 @@ int Session::FeedNNNode(int node_idx, std::string& nn_node_name, std::unordered_
   // row index
   for (auto idx = 0; idx < first_dim_size; ++idx) {
     uint64_t fid = GetFid(node_idx + 1, idx + 1);  // node_idx and row_idx start with 1
-    LOG(INFO) << "nn fid:" << fid << ", node_idx:" << (node_idx == GetNodeIdx(fid)) << ", row_idx:" << (idx == GetRowIdx(fid));
+    LOG(INFO) << "nn fid:" << fid << ", node_idx:" << (node_idx+1 == GetNodeIdx(fid)) << ", row_idx:" << (idx+1 == GetRowIdx(fid));
     if (model_weights.find(fid) != model_weights.end()) {
       auto val_list = model_weights[fid];
       CHECK(val_list.val_size() == (int)second_dim_size) << "nn cols size not match";
@@ -286,12 +330,97 @@ int Session::FeedNNNode(int node_idx, std::string& nn_node_name, std::unordered_
     } else {
       // TODO 需要优化初始化方式
       for (int j = 0; j < second_dim_size; ++j) {
-        nn->tensor<float, 2>()(idx, j) = 0;
+        //nn->tensor<float, 2>()(idx, j) = 0;
+        nn->tensor<float, 2>()(idx, j) = 1;
       }
     }
   } // for each row
   LOG(INFO) << "forward nn node [" << nn_node_name << "], tensor:\n" << nn->tensor<float, 2>();
   return 0;
-} 
+}
+
+int Session::GetGradient() {
+  // get column node gradient
+  // TODO parallel
+  for (auto i = 0; i < valid_columns_.size(); ++i) {
+    auto colid = valid_columns_[i];
+    if (GetColumnGradient(colid) != 0) {
+      LOG(ERROR) << "feed column node failed. column id:" << valid_columns_[i];
+      return -1;
+    }
+  }
+  // get nn node gradient
+  for (auto idx = 0; idx < reverse_nn_variable_.size(); ++idx) {
+    auto nn_node_name = reverse_nn_variable_[idx];
+    if (GetNNGradient(idx, nn_node_name) != 0) {
+      LOG(ERROR) << "feed nn node failed. nn_node_name:" << nn_node_name;
+      return -1;
+    }
+  }
+}
+
+int Session::GetColumnGradient(int colid) {
+  auto* column_key_index = column_key_indexes_.at(colid);
+  auto column_node = column2node_[colid];
+  std::unordered_map<uint64_t, proto::internal::ValList> fid2grad;
+
+  // wide and deep problem
+  for (int k = 0; k < column_node->w_size(); ++k) {
+    auto w_node_name = column_node->w(k);
+    auto weight_offset = column_node->weight_schema().weight_offset(k);
+    auto* tensor = node2tensor_[w_node_name];
+    auto row_size = tensor->shape().DimSize(0);
+    // row index
+    for (int row_idx = 0; row_idx < row_size; ++row_idx) {
+      // multi-hot
+      auto keys = column_key_index->key_index(row_idx);
+      for (int i = 0; i < keys.keys_size(); ++i) {
+        uint64_t fid = keys.keys(i);
+        proto::internal::ValList grad_list;
+        if (fid2grad.find(fid) != fid2grad.end()) {
+          grad_list = fid2grad[fid];
+        }
+
+        auto offset = weight_offset.weight_offset();
+        auto size = weight_offset.weight_size();  // embedding size
+        CHECK(size == tensor->shape().DimSize(1)) 
+          << "size:" << size << ", dim(1):" << tensor->shape().DimSize(1);
+        // TODO 优化赋值效率
+        for (int j = 0; j < size; ++j) {
+          //grad_list.val(j+offset) += tensor->tensor<float, 2>(row_idx, j);
+        }
+
+        fid2grad[fid] = grad_list;
+      } // end for multi-hot
+    } // end for row-index
+  } // end for multi w node
+  return 0;
+}
+
+int Session::GetNNGradient(int idx, std::string& node_name) {
+  std::unordered_map<uint64_t, proto::internal::ValList> fid2grad;
+  LOG(INFO) << "reversed nn:" << node_name;
+  CHECK(node2tensor_.find(node_name) != node2tensor_.end());
+  auto* nn = node2tensor_[node_name];
+  LOG(INFO) << ", tensor:\n" << nn->tensor<float, 2>();
+  // by first dim (default by row splitted)
+  auto first_dim_size = nn->shape().DimSize(0);
+  auto second_dim_size = nn->shape().DimSize(1);
+  for (int row_idx = 0; row_idx < first_dim_size; ++row_idx) {
+    auto fid = GetFid(idx + 1, row_idx + 1);
+    proto::internal::ValList grad_list;
+    if (fid2grad.find(fid) != fid2grad.end()) {
+      grad_list = fid2grad[fid];
+    }
+
+    // 优化性能
+    for (int j = 0; j < second_dim_size; ++j) {
+      //grad_list.val(j) = nn->tensor<float, 2>(row_idx, j);
+    }
+    fid2grad[fid] = grad_list;
+  }
+
+  return 0;
+}
 
 } // namespace openmi
