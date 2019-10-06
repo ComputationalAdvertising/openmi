@@ -158,7 +158,8 @@ int main(int argc, char** argv) {
 
   InstancesPtr instances = std::make_shared<proto::Instances>();
   std::unordered_map<uint64_t, proto::internal::ValList> model_weights;
-  for (int i = 0; i < 10; ++i) {
+  int batch_size = 5;
+  for (int i = 0; i < batch_size; ++i) {
     auto ins1 = instances->add_instance();
     ins1->mutable_label()->add_labels(i % 2 == 0 ? 1 : 0);
     int f_size = 10;
@@ -169,26 +170,22 @@ int main(int argc, char** argv) {
       uint64_t fid = (j*1000 + j);
       f->set_fid(fid);
       
+      auto f2 = ins1->add_feature();
+      f2->set_colid(j);
+      f2->set_weight((j+1)*0.1 + 0.1);
+      auto fid2 = fid + 1;
+      f2->set_fid(fid2);
+      
       proto::internal::ValList val_list;
       for (int k = 0; k < 9; ++k) {
         val_list.add_val(j*0.1);
       }
       model_weights.insert({fid, val_list});
+      model_weights.insert({fid2, val_list});
     }
   }
   
-  // 1. feed source node
-  // 1.1. fid sets
-  // 1.2. pull
-  // 1.3. feed source
-  sess.FeedSourceNode(instances, model_weights);
-  // 2. forward and backward
-  exec->Run();
-  // 3. get gradient from graph
-  sess.GetGradient();
-  // 3.1. get fid gradient
-  // 3.2. push
-  // 4. metrics
+  sess.Run(instances, true);
   
   // 1. 获取所有的SourceNode节点 (理应包括所有的reversed variable node)
   
