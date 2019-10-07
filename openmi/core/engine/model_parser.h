@@ -1,7 +1,7 @@
 #ifndef OPENMI_CORE_ENGINE_MODEL_PARSER_H_
 #define OPENMI_CORE_ENGINE_MODEL_PARSER_H_
 
-#include "openmi/core/framework/executor.h"
+#include "openmi/core/graph/graph.h"
 #include "openmi/idl/proto/engine.pb.h"
 using namespace openmi;
 
@@ -9,8 +9,8 @@ namespace openmi {
 
 class ModelParser {
 public: 
-  static void CreateModelWeightSchema(Executor* exec, std::unordered_map<int, std::shared_ptr<proto::internal::ModelWeightSchema> >& schema) {
-    for (Node* node: exec->GetGraph()->source_nodes()) {
+  static void CreateModelWeightSchema(Graph* g, std::unordered_map<int, std::shared_ptr<proto::internal::ModelWeightSchema> >& schema) {
+    for (Node* node: g->source_nodes()) {
       std::string node_name = node->def().name();
       int column_id = -1;
       GetAttr(node->attrs(), "col_id", &column_id);
@@ -30,7 +30,10 @@ public:
 
           auto model_weight_schema = std::make_shared<proto::internal::ModelWeightSchema>();
           schema.insert({node_id, model_weight_schema});
-          InitModelWeightSchema(exec, node_name, node_id, model_weight_schema.get());
+
+          TensorShape shape;
+          GetAttr(node->attrs(), "shape", &shape, false);
+          InitModelWeightSchema(shape, node_name, node_id, model_weight_schema.get());
         }
       } else {
         SourceNodeType source_node_type = proto::X;
@@ -66,15 +69,11 @@ public:
       << ", weight_len:" << schema->weight_len() << ", number of weight:" << schema->weight_schema_size();
   }
 
-  static void InitModelWeightSchema(Executor* exec, std::string& node_name, int id, proto::internal::ModelWeightSchema* schema) {
+  static void InitModelWeightSchema(TensorShape& shape, std::string& node_name, int id, proto::internal::ModelWeightSchema* schema) {
     schema->set_column_id(id);
     auto* weight_schema = schema->add_weight_schema();
-
-    Tensor* t = nullptr;
-    exec->GetSessionState()->GetTensor(node_name, &t);
-    CHECK(t != nullptr) << "tensor not found from session state. node name: " << node_name;
-    CHECK(t->shape().Dims() == 2);
-    auto dim_2nd = t->shape().DimSize(1);
+    CHECK(shape.Dims() == 2);
+    auto dim_2nd = shape.DimSize(1);
     auto cur_weight_len = schema->weight_len();
     weight_schema->set_offset(cur_weight_len);
     weight_schema->set_size(dim_2nd);

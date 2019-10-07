@@ -20,7 +20,7 @@ int Session::Init(proto::GraphDef& gdef) {
     return -1;
   }
 
-  ModelParser::CreateModelWeightSchema(executor_.get(), model_weight_schema_);
+  ModelParser::CreateModelWeightSchema(executor_->GetGraph(), model_weight_schema_);
   LOG(INFO) << "schema_map.size: " << model_weight_schema_.size();
 
   return 0;

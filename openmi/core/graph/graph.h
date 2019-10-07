@@ -4,11 +4,11 @@
 #include "openmi/idl/proto/node_def.pb.h"
 #include "openmi/idl/proto/graph.pb.h"
 
-#include "attr_value.h"
-#include "op_kernel.h"
-#include "tensor.h"
-#include "tensor_shape.h"
-#include "status.h"
+#include "openmi/core/framework/attr_value.h"
+#include "openmi/core/framework/op_kernel.h"
+#include "openmi/core/framework/tensor.h"
+#include "openmi/core/framework/tensor_shape.h"
+#include "base/status.h"
 
 using namespace openmi::proto;
 
