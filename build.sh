@@ -40,7 +40,7 @@ build_dep_project $base_dir $base_lib
 
 
 dep_whole_archive_libraries="-lopenmi_core -lopenmi_base"
-dep_static_libraries="-lopenmi_idl \
+dep_static_libraries="-lopenmi_idl -lthriftnb -lthrift -lboost_system -lcurl \
 -lprotobuf -lprotoc -lprotobuf-lite -lgmock -lgtest -lgtest_main"
 dep_dynamic_libraries="-lpthread -lgflags"
 

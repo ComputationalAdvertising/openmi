@@ -15,10 +15,11 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/../openmi-base/base
   ${PROJECT_SOURCE_DIR}/../openmi-idl
   ${PROJECT_SOURCE_DIR}/openmi
-  ${PROJECT_SOURCE_DIR}/openmi/core/framework
-  ${PROJECT_SOURCE_DIR}/openmi/core/ops
-  ${PROJECT_SOURCE_DIR}/openmi/core/graph
+  ${PROJECT_SOURCE_DIR}/openmi/core/distribute_runtime
   ${PROJECT_SOURCE_DIR}/openmi/core/engine
+  ${PROJECT_SOURCE_DIR}/openmi/core/framework
+  ${PROJECT_SOURCE_DIR}/openmi/core/graph
+  ${PROJECT_SOURCE_DIR}/openmi/core/ops
   ${PROJECT_SOURCE_DIR}
 )
 

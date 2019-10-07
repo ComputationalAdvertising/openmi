@@ -18,6 +18,7 @@ typedef std::shared_ptr<proto::internal::ColumnKeyIndex> ColumnKeyIndexPtr;
 typedef std::shared_ptr<proto::internal::ValList> ValListPtr;
 typedef std::shared_ptr<Executor> ExecutorPtr;
 typedef std::shared_ptr<proto::Instances> InstancesPtr;
+typedef std::shared_ptr<proto::internal::ModelWeightSchema> ModelWeightSchemaPtr;
 static int graph_cache_time = 10*60;
 
 class Session {
@@ -69,6 +70,8 @@ private:
   std::unordered_map<int, ColumnNodePtr> column2node_;
   std::unordered_map<std::string, Tensor*> node2tensor_;
   std::unordered_map<int, ColumnKeyIndexPtr> column2keyindex_;
+  // column/node id to model weight schema defination.
+  std::unordered_map<int, ModelWeightSchemaPtr> model_weight_schema_;
 
   //std::array<proto::internal::ColumnKeyIndexList*, 1000> column_key_indexes_;
   std::vector<std::string> forward_nn_variable_;

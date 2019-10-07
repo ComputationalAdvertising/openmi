@@ -1,5 +1,6 @@
 #include "session.h"
 #include "base/timer.h"
+#include "openmi/core/engine/model_parser.h"
 
 namespace openmi {
 
@@ -18,6 +19,10 @@ int Session::Init(proto::GraphDef& gdef) {
     LOG(ERROR) << "get graph node from inited executor failed.";
     return -1;
   }
+
+  ModelParser::CreateModelWeightSchema(executor_.get(), model_weight_schema_);
+  LOG(INFO) << "schema_map.size: " << model_weight_schema_.size();
+
   return 0;
 }
 
@@ -354,6 +359,7 @@ int Session::FeedXNode(ColumnNodePtr& column_node, std::vector<float>& values) {
     x(idx, 0) = values[idx];
   }
   DLOG(INFO) << "feed x node[" << node_name << "]:\n" << x;
+  return 0;
 }
 
 int Session::FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids) {
@@ -517,7 +523,6 @@ int Session::GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPt
         auto offset1 = offset + j;
         grad_list->set_val(offset1, grad_list->val(offset1) + grad(row_idx, j));
       }
-      LOG(INFO) << "row_idx: " << row_idx << ", done";
     } // row index
   } // multi weight node
   LOG(INFO) << "done";

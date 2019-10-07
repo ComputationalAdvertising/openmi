@@ -138,17 +138,20 @@ void VariableGradTest(std::unordered_map<std::string, Tensor*>& node2tensor_) {
 
 int main(int argc, char** argv) {
   const char* file = "unittest/conf/wide_and_deep_graph_demo.conf";
+  LOG(INFO) << "file: " << file;
   proto::GraphDef gdef;
   if (ProtobufOp::LoadObjectFromPbFile<proto::GraphDef>(file, &gdef) != 0) {
     LOG(ERROR) << "load graph def proto file failed.";
     return -1;
   }
+  LOG(INFO) << "load graph file done.";
 
   Session sess;
   if (sess.Init(gdef) != 0) {
     LOG(ERROR) << "session init failed.";
     return -1;
   }
+  LOG(INFO) << "session init done.";
 
   Executor* exec = sess.GetExecutor().get();
   

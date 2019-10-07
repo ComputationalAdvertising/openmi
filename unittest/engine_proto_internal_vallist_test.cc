@@ -3,7 +3,9 @@
 using namespace openmi;
 
 int main(int argc, char** argv) {
+  
   proto::internal::ValList val_list;
+  val_list.mutable_val()->Resize(9, 0);
   val_list.add_val(0.1);
   // val_list.set_val(2, 0.2);
   // val_list.set_val(9, 0.9);
