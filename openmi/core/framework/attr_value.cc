@@ -58,6 +58,12 @@ void AttrValue::FromProto(const proto::AttrValue& attr) {
         this->source_node_type = attr.source_node_type();
         break;
       }
+    case proto::AttrValue::kOptimizer: 
+      {
+        this->attr_type = kOptimizer;
+        this->optimizer = attr.optimizer();
+        break;
+      }
     case proto::AttrValue::VALUE_NOT_SET:
       {
         this->attr_type = kNone;

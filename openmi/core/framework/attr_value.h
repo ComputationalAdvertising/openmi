@@ -19,7 +19,8 @@ struct AttrValue {
     kShape,
     kTensor,
     kFeaturetype,
-    kSourceNodeType
+    kSourceNodeType,
+    kOptimizer
   };
 
   AttrType attr_type;
@@ -32,6 +33,7 @@ struct AttrValue {
   Tensor tensor;
   proto::FeatureType feature_type;
   proto::SourceNodeType source_node_type;
+  proto::Optimizer optimizer;
 
   void FromProto(const proto::AttrValue& value);
   proto::AttrValue ToProto();

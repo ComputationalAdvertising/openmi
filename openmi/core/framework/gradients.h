@@ -1,7 +1,7 @@
 #ifndef OPENMI_CORE_FRAMEWORK_GRADIENTS_H_
 #define OPENMI_CORE_FRAMEWORK_GRADIENTS_H_  
 
-#include "graph.h"
+#include "openmi/core/graph/graph.h"
 #include "session_state.h"
 
 namespace openmi {

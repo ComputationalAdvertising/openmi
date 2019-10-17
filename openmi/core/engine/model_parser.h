@@ -3,6 +3,7 @@
 
 #include "openmi/core/graph/graph.h"
 #include "openmi/idl/proto/engine.pb.h"
+#include "openmi/idl/proto/optimizer.pb.h"
 using namespace openmi;
 
 namespace openmi {
@@ -12,6 +13,7 @@ public:
   static void CreateModelWeightSchema(Graph* g, std::unordered_map<int, std::shared_ptr<proto::internal::ModelWeightSchema> >& schema) {
     for (Node* node: g->source_nodes()) {
       std::string node_name = node->def().name();
+      DLOG(INFO) << __FUNCTION__ << " node_name:" << node_name;
       int column_id = -1;
       GetAttr(node->attrs(), "col_id", &column_id);
       if (column_id == -1) {
@@ -33,13 +35,19 @@ public:
 
           TensorShape shape;
           GetAttr(node->attrs(), "shape", &shape, false);
+
+          proto::Optimizer optimizer;
+          GetAttr(node->attrs(), "optimizer", &optimizer, false);
+          LOG(INFO) << "node: " << node_name << ", optimizer:\n" << optimizer.DebugString();
+
+          // TODO proto::Optimizer
           InitModelWeightSchema(shape, node_name, node_id, model_weight_schema.get());
         }
       } else {
         SourceNodeType source_node_type = proto::X;
         GetAttr(node->attrs(), "source_node_type", &source_node_type);
-        if (source_node_type != proto::W 
-          || node->node_info().node_scope != NS_FORWARD) {
+        if (source_node_type != proto::W || 
+            node->node_info().node_scope != NS_FORWARD) {
           continue;
         }
         std::shared_ptr<proto::internal::ModelWeightSchema> model_weight_schema;
@@ -53,6 +61,11 @@ public:
         GetAttr(node->attrs(), "embedding_size", &embedding_size);
         CHECK(embedding_size > 0) << "node '" << node_name 
           << "' has invalid param 'embedding_size' that value should be greater 0";
+
+        // TODO proto::Optimizer
+        proto::Optimizer optimizer;
+        GetAttr(node->attrs(), "optimizer", &optimizer, false);
+        LOG(INFO) << "node: " << node_name << ", optimizer:\n" << optimizer.DebugString();
         InitModelWeightSchema(node_name, column_id, model_weight_schema.get(), embedding_size);
       }
     }
@@ -62,9 +75,13 @@ public:
     schema->set_column_id(id);
     auto* weight_schema = schema->add_weight_schema();
     auto cur_weight_len = schema->weight_len();
-    weight_schema->set_offset(cur_weight_len);
-    weight_schema->set_size(size);
-    schema->set_weight_len(cur_weight_len + size);
+    auto cur_param_len = schema->param_len();
+    weight_schema->set_weight_offset(cur_weight_len);
+    weight_schema->set_weight_size(size);
+    // TODO add optimizer param. 
+    // weight_schema->set_param_size();
+    schema->set_weight_len(cur_weight_len + weight_schema->weight_size());
+    schema->set_param_len(cur_param_len + weight_schema->param_size());
     LOG(INFO) << __FUNCTION__ << " node_name:" << node_name << ", id:" << id << ", size:" << size 
       << ", weight_len:" << schema->weight_len() << ", number of weight:" << schema->weight_schema_size();
   }
@@ -75,9 +92,13 @@ public:
     CHECK(shape.Dims() == 2);
     auto dim_2nd = shape.DimSize(1);
     auto cur_weight_len = schema->weight_len();
-    weight_schema->set_offset(cur_weight_len);
-    weight_schema->set_size(dim_2nd);
-    schema->set_weight_len(cur_weight_len + dim_2nd);
+    auto cur_param_len = schema->param_len();
+    weight_schema->set_weight_offset(cur_weight_len);
+    weight_schema->set_weight_size(dim_2nd);
+    // TODO add optimizer param
+    // weight_schema->set_param_size();
+    schema->set_weight_len(cur_weight_len + weight_schema->weight_size());
+    schema->set_param_len(cur_param_len + weight_schema->param_size());
     LOG(INFO) << __FUNCTION__ << " node_name:" << node_name << ", id:" << id 
       << ", size:" << dim_2nd << ", weight_len:" << schema->weight_len();
   }

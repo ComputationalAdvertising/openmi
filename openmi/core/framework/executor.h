@@ -3,8 +3,8 @@
 
 #include <memory>
 #include <unordered_map>
-#include "graph.h"
-#include "graph_constructor.h"
+#include "openmi/core/graph/graph.h"
+#include "openmi/core/graph/graph_constructor.h"
 #include "openmi/idl/proto/graph.pb.h"
 #include "status.h"
 #include "session_state.h"
