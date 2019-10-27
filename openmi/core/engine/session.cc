@@ -1,5 +1,6 @@
-#include "session.h"
+
 #include "base/timer.h"
+#include "openmi/core/engine/session.h"
 #include "openmi/core/engine/model_parser.h"
 
 namespace openmi {
@@ -31,6 +32,7 @@ void Session::Destroy() {
 }
 
 int Session::ParseGraphSourceNode() {
+  nn_entrys_.clear();
   for (Node* node: executor_->GetGraph()->source_nodes()) {
     std::string node_name = node->def().name();
   
@@ -60,6 +62,20 @@ int Session::ParseGraphSourceNode() {
       if (node->node_info().node_scope == NS_FORWARD && !is_label) {
         forward_nn_variable_.push_back(node_name);
         reverse_nn_variable_.push_back(related_node_name);
+        int node_id = 0;
+        GetAttr(node->attrs(), "node_id", &node_id, false);
+        CHECK(node_id < 0) << "attr 'node_id' should be less 0. node_name:" << node_name;
+        CHECK(node2tensor_.find(node_name) != node2tensor_.end());
+        Tensor* tensor = node2tensor_[node_name];
+        CHECK(tensor->IsInitialized()) << "graph weight has not initialized.";
+        CHECK(tensor->shape().Dims() == 2);
+        auto dim_1st = tensor->shape().DimSize(0);
+        for (auto row_idx = 0; row_idx < dim_1st; ++row_idx) {
+          auto fid = NNFid(std::abs(node_id), row_idx);
+          openmi::engine::NNEntry nn_entry(fid, node_id);
+          nn_entrys_.push_back(nn_entry);
+          LOG(INFO) << "node_name:" << node_name << ", node_id:" << node_id << ", fid:" << fid; 
+        }
       }
       continue;
     }
@@ -119,9 +135,6 @@ int Session::ParseGraphSourceNode() {
       << ", reverse nn variable size:" << reverse_nn_size;
     return -1; 
   }
-
-  // nn weight sign that used to graph cache
-  GetNNFids();
 
   if (CheckColumnNode() != 0) {
     LOG(INFO) << "column node from graph is illegal.";
@@ -216,8 +229,8 @@ int Session::Pull() {
   }
 
   if (update_graph_cache_) {
-    for (auto fid: nn_fids_) {
-      ps_accessor_.AddPullFid(fid);
+    for (auto nn_entry: nn_entrys_) {
+      ps_accessor_.AddPullFid(nn_entry.fid, nn_entry.node_id);
     }
   }
 
@@ -363,7 +376,7 @@ int Session::FeedXNode(ColumnNodePtr& column_node, std::vector<float>& values) {
 }
 
 int Session::FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids) {
-  // consider multiply weight node respond to one x source node
+  // consider multiply WEIGHT node respond to one X source node
   for (int k = 0; k < column_node->w_size(); ++k) {
     auto node_name = column_node->w(k);
     auto weight_offset = column_node->weight_schema().weight_offset(k);
@@ -379,7 +392,7 @@ int Session::FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids) {
     auto w = tensor->tensor<float, 2>();
     w.setZero();
 
-    auto fid2paramdata = ps_accessor_.GetFid2ParamData();
+    auto& fid2paramdata = ps_accessor_.GetFid2ParamData();
     for (int i = 0; i < fids->keys_size(); ++i) {
       auto fid = fids->keys(i);
       if (fid == 0 || fid2paramdata.find(fid) == fid2paramdata.end()) {
@@ -398,24 +411,8 @@ int Session::FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids) {
   return 0;
 }
 
-uint64_t Session::NNFid(int node_idx, int row_idx) {
-  return GetFid(node_idx + 1, row_idx + 1);
-}
-
-void Session::GetNNFids() {
-  nn_fids_.clear();
-  for (auto i = 0; i < forward_nn_variable_.size(); ++i) {
-    auto node_name = forward_nn_variable_.at(i);
-    CHECK(node2tensor_.find(node_name) != node2tensor_.end());
-    Tensor* tensor = node2tensor_[node_name];
-    CHECK(tensor->IsInitialized()) << "graph weight has not initialized.";
-    CHECK(tensor->shape().Dims() == 2);
-    auto dim_1st = tensor->shape().DimSize(0);
-    for (auto row_idx = 0; row_idx < dim_1st; ++row_idx) {
-      auto fid = NNFid(i, row_idx);
-      nn_fids_.push_back(fid);
-    }
-  }
+uint64_t Session::NNFid(int node_id, int row_idx) {
+  return GetFid(node_id + 1, row_idx + 1);
 }
 
 int Session::FeedNNNode(int node_idx, std::string& node_name) {
@@ -509,7 +506,7 @@ int Session::GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPt
       if (fid2grad.find(fid) != fid2grad.end()) {
         grad_list = fid2grad[fid];
       } else {
-        grad_list = std::make_shared<proto::internal::ValList>();
+        grad_list = std::make_shared<proto::comm::ValueList>();
         grad_list->mutable_val()->Resize(total_weight_size, 0);
         fid2grad.insert({fid, grad_list});
       }
@@ -547,7 +544,7 @@ int Session::GetNNGradient(int idx, std::string& node_name, std::unordered_map<u
     if (fid2grad.find(fid) != fid2grad.end()) {
       grad_list = fid2grad[fid];
     } else {
-      grad_list = std::make_shared<proto::internal::ValList>();
+      grad_list = std::make_shared<proto::comm::ValueList>();
       grad_list->mutable_val()->Resize(dim_2nd, 0);
       fid2grad.insert({fid, grad_list});
     }

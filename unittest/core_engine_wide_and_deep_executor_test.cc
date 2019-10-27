@@ -1,10 +1,11 @@
+#include <unordered_set>
 #include "executor.h"
 #include "session.h"
 #include "attr_value_utils.h"
-#include "openmi/idl/proto/engine.pb.h"
 #include "base/protobuf_op.h"
 #include "base/logging.h"
-#include <unordered_set>
+#include "openmi/idl/proto/engine.pb.h"
+#include "openmi/idl/proto/communication.pb.h"
 
 using namespace openmi;
 
@@ -160,7 +161,7 @@ int main(int argc, char** argv) {
   // Iter(*exec, batch_size*2);
 
   InstancesPtr instances = std::make_shared<proto::Instances>();
-  std::unordered_map<uint64_t, proto::internal::ValList> model_weights;
+  std::unordered_map<uint64_t, proto::comm::ValueList> model_weights;
   int batch_size = 5;
   for (int i = 0; i < batch_size; ++i) {
     auto ins1 = instances->add_instance();
@@ -179,7 +180,7 @@ int main(int argc, char** argv) {
       auto fid2 = fid + 1;
       f2->set_fid(fid2);
       
-      proto::internal::ValList val_list;
+      proto::comm::ValueList val_list;
       for (int k = 0; k < 9; ++k) {
         val_list.add_val(j*0.1);
       }

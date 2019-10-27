@@ -3,11 +3,14 @@
 
 #include <unordered_set>
 #include "base/bit_op.h" // GetFid, GetNodeIdx, GetRowIdx
-#include "openmi/idl/proto/instance.pb.h"
+#include "openmi/idl/proto/communication.pb.h"
 #include "openmi/idl/proto/engine.pb.h"
 #include "openmi/idl/proto/graph.pb.h"
+#include "openmi/idl/proto/instance.pb.h"
 #include "openmi/core/framework/executor.h"
+#include "openmi/core/engine/nn_structure.h"
 #include "openmi/core/engine/ps_accessor.h"
+
 using namespace openmi;
 
 namespace openmi {
@@ -15,7 +18,7 @@ namespace openmi {
 typedef std::shared_ptr<proto::internal::ColumnNode> ColumnNodePtr;
 typedef std::shared_ptr<proto::internal::ColumnWeightSchema> ColumnWeightSchemaPtr;
 typedef std::shared_ptr<proto::internal::ColumnKeyIndex> ColumnKeyIndexPtr;
-typedef std::shared_ptr<proto::internal::ValList> ValListPtr;
+typedef std::shared_ptr<proto::comm::ValueList> ValListPtr;
 typedef std::shared_ptr<Executor> ExecutorPtr;
 typedef std::shared_ptr<proto::Instances> InstancesPtr;
 typedef std::shared_ptr<proto::internal::ModelWeightSchema> ModelWeightSchemaPtr;
@@ -56,15 +59,14 @@ private:
   int GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPtr>& fid2grad);
   int GetNNGradient(int idx, std::string& node_name, std::unordered_map<uint64_t, ValListPtr>& fid2grad);
 
-  void GetNNFids();
-  uint64_t NNFid(int node_idx, int row_idx);
+  uint64_t NNFid(int node_id, int row_idx);
 
 private:
   ExecutorPtr executor_;
   PsAccessor ps_accessor_;
   InstancesPtr batch_;
   std::unordered_set<uint64_t> fid_set_;
-  std::vector<uint64_t> nn_fids_;
+  std::vector<openmi::engine::NNEntry> nn_entrys_;
   std::vector<int> valid_columns_;
   std::unordered_set<int> valid_columns_set_;
   std::unordered_map<int, ColumnNodePtr> column2node_;

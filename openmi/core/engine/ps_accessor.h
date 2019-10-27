@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "base/logging.h"
-#include "openmi/idl/proto/engine.pb.h"
+#include "openmi/idl/proto/communication.pb.h"
 using namespace openmi;
 
 namespace openmi {
@@ -25,9 +25,9 @@ public:
     push_req_.Clear();
   }
 
-  void AddPullFid(uint64_t fid, int column_id = -1) {
+  void AddPullFid(uint64_t fid, int column_id) {
     pull_req_.add_keys(fid);
-    pull_req_.add_columns(column_id);
+    pull_req_.add_fields(column_id);
   }
 
   void AddGradient(uint64_t fid, std::vector<float>& grads) {
@@ -58,15 +58,15 @@ public:
     return 0;
   }
 
-  std::unordered_map<uint64_t, proto::internal::ValList>& GetFid2ParamData() {
+  std::unordered_map<uint64_t, proto::comm::ValueList>& GetFid2ParamData() {
     return fid2paramdata_;
   }
 
 private:
-  std::unordered_map<uint64_t, proto::internal::ValList> fid2paramdata_;
-  proto::internal::ModelParamData pull_req_;
-  proto::internal::ModelParamData pull_rsq_;
-  proto::internal::ModelParamData push_req_;
+  std::unordered_map<uint64_t, proto::comm::ValueList> fid2paramdata_;
+  proto::comm::CommData pull_req_;
+  proto::comm::CommData pull_rsq_;
+  proto::comm::CommData push_req_;
 }; // class PsAccessor
 
 } // namespace openmi

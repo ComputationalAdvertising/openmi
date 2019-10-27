@@ -5,6 +5,8 @@
 #include "sarray.h"
 #include "openmi/idl/proto/engine.pb.h"
 using namespace openmi::proto::internal;
+#include "openmi/idl/proto/communication.pb.h"
+using namespace openmi;
 
 using namespace mit;
 
@@ -53,13 +55,14 @@ int main(int argc, char** argv) {
   GetColumnWeightBySchema(cwsp, s, 0);
   GetColumnWeightBySchema(cwsp, s, 1);
 
-  ModelKVPairs* kv_pairs = new ModelKVPairs();
-  ValList* vals1 = kv_pairs->add_vals();
+  proto::comm::CommData* kv_pairs = new proto::comm::CommData();
+  
+  proto::comm::ValueList* vals1 = kv_pairs->add_vals();
   vals1->add_val(0.1);
   vals1->add_val(0.11);
   vals1->add_val(0.111);
 
-  ValList* vals2 = kv_pairs->add_vals();
+  proto::comm::ValueList* vals2 = kv_pairs->add_vals();
   vals2->add_val(0.2);
   vals2->add_val(0.22);
 
