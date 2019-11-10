@@ -85,10 +85,11 @@ void PsSharding::Pull(std::string& value_type, const std::string& req_id) {
 void PsSharding::Push(std::string& value_type, const std::string& req_id) {
   reqs_.clear();
   reqs_.resize(ps_slice_num_);
-  
+
   // TODO parallel 
   for (size_t i = 0; i < ps_slice_num_; ++i) {
     ps_slices_[i].push_req_.SerializeToString(&reqs_[i]);
+    LOG(INFO) << "i:" << i << ", push req:\n" << ps_slices_[i].push_req_.DebugString();
   }
 
   // TODO retry rpc && ack

@@ -475,7 +475,6 @@ int Session::FeedNNNode(engine::NNVariableInfo& nn_variable) {
       LOG(ERROR) << __FUNCTION__ << ". pull nn param is empty. fid:" << fid;
       // TODO 需要优化初始化方式
       for (int j = 0; j < second_dim_size; ++j) {
-        //nn->tensor<float, 2>()(idx, j) = 0;
         nn->tensor<float, 2>()(idx, j) = 1;
       }
     }
@@ -519,6 +518,8 @@ int Session::GetColumnGradient(int colid) {
     auto* tensor = node2tensor_[w_node_name];
     CHECK(tensor->IsInitialized());
     auto grad = tensor->tensor<float, 2>();
+    LOG(INFO) << __FUNCTION__ << ". colid: " << colid << ", column_grad_tensor:\n" << grad;
+
     auto row_size = tensor->shape().DimSize(0);
     CHECK(row_size == column_key_index->keys_size());
     
@@ -534,7 +535,6 @@ int Session::GetColumnGradient(int colid) {
         grad_list = fid2grad[fid];
       } else {
         grad_list.resize(total_weight_size);
-        fid2grad.insert({fid, grad_list});
       }
 
       if (row_idx == 0) {
@@ -545,6 +545,8 @@ int Session::GetColumnGradient(int colid) {
       for (int j = 0; j < size; ++j) {
         grad_list[offset + j] += grad(row_idx, j);
       }
+      fid2grad.erase(fid);
+      fid2grad.insert({fid, grad_list});
     } // row index
   } // multi weight node
 
@@ -572,14 +574,15 @@ int Session::GetNNGradient(engine::NNVariableInfo& nn_variable) {
   // by first dim (default by row splitted)
   auto dim_1st = nn->shape().DimSize(0);
   auto dim_2nd = nn->shape().DimSize(1);
-  std::vector<float> grads(dim_2nd);
+  std::vector<float> grads;
   for (int row_idx = 0; row_idx < dim_1st; ++row_idx) {
+    grads.clear();
+    grads.resize(dim_2nd);
     auto fid = NNFid(std::abs(nn_variable.node_id), row_idx);
     for (int j = 0; j < dim_2nd; ++j) {
       grads[j] += grad(row_idx, j);
     }
     ps_interactor_->AddPush(fid, nn_variable.node_id, grads);
-    grads.clear();
   }
 
   return 0;
