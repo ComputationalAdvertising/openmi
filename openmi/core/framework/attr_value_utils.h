@@ -142,7 +142,7 @@ inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, const std:
   }
 }
 
-inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, const std::string& key, proto::Optimizer* v, bool allow_not_found = true) {
+inline void GetAttr(std::unordered_map<std::string, AttrValue>& attr, const std::string& key, proto::OptimizerConfig* v, bool allow_not_found = true) {
   auto it = attr.find(key);
   if (!allow_not_found) {
     CHECK(it != attr.end()) << "attr '" << key << "' not exists. please check graph def.";

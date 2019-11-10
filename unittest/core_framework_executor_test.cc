@@ -91,6 +91,10 @@ int main(int argc, char** argv) {
   }
 
   Executor exec(gdef);
+  if (exec.Init() != 0) {
+    LOG(ERROR) << "executor init failed. graph name: " << gdef.name();
+    return -1;
+  }
 
   int epoch = 2;
   for (int i = 0; i < epoch; ++i) {

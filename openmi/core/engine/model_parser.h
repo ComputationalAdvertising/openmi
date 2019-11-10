@@ -60,13 +60,16 @@ public:
     }
 
     // TODO proto::Optimizer
-    proto::Optimizer optimizer;
+    proto::OptimizerConfig optimizer;
     GetAttr(node->attrs(), "optimizer", &optimizer, false);
-    LOG(INFO) << "node: " << node_name << ", optimizer:\n" << optimizer.DebugString();
+    DLOG(INFO) << "node: " << node_name << ", optimizer:\n" << optimizer.DebugString();
 
     // create schema
     column_weight_schema->set_column_id(column_id);
     auto* weight_schema = column_weight_schema->add_weight_schema();
+    weight_schema->mutable_optimizer()->CopyFrom(optimizer);
+    
+
     auto prev_total_weight_size = column_weight_schema->total_weight_size();
     auto prev_total_weight_bytes = column_weight_schema->total_weight_bytes();
     auto prev_total_weight_optimizer_bytes = column_weight_schema->total_weight_optimizer_bytes();
@@ -117,7 +120,7 @@ public:
     }
       
     auto dim_2nd = shape.DimSize(1);
-    proto::Optimizer optimizer;
+    proto::OptimizerConfig optimizer;
     GetAttr(node->attrs(), "optimizer", &optimizer, false);
 
     // create schema
@@ -126,6 +129,7 @@ public:
     nn_weight_schema->set_column_id(node_id);
   
     auto* weight_schema = nn_weight_schema->add_weight_schema();
+    weight_schema->mutable_optimizer()->CopyFrom(optimizer);
 
     // TODO not only 2nd dim, but extra dims
     weight_schema->set_weight_offset(0);
@@ -142,6 +146,7 @@ public:
     return 0;
   }
 
+  // TODO using optimizer_types.h
   static int SizeofOptimizer(openmi::proto::OptimizerType optimizer_type) {
     int bytes = 0;
     switch (optimizer_type) {

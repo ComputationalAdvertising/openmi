@@ -33,7 +33,7 @@ struct AttrValue {
   Tensor tensor;
   proto::FeatureType feature_type;
   proto::SourceNodeType source_node_type;
-  proto::Optimizer optimizer;
+  proto::OptimizerConfig optimizer;
 
   void FromProto(const proto::AttrValue& value);
   proto::AttrValue ToProto();

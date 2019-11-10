@@ -20,7 +20,7 @@ public:
   explicit Executor(proto::GraphDef& gdef);
   ~Executor();
 
-  void Init(proto::GraphDef& gdef);
+  int Init();
   
   void Destroy();
 

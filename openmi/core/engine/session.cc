@@ -5,14 +5,19 @@
 
 namespace openmi {
 
-Session::Session(): executor_(nullptr) {}
+Session::Session(): executor_(nullptr), ps_interactor_(nullptr) {}
 
 Session::~Session() {}
 
 int Session::Init(proto::GraphDef& gdef) {
   executor_ = std::make_shared<Executor>(gdef);
   if (executor_ == nullptr) {
-    LOG(ERROR) << "create executor failed. graph name[" << gdef.name() << "]"; 
+    LOG(ERROR) << "create executor failed. graph name:" << gdef.name();
+    return -1;
+  }
+  
+  if (executor_->Init() != 0) {
+    LOG(ERROR) << "executor init failed. graph name:" << gdef.name();
     return -1;
   }
   
@@ -24,6 +29,33 @@ int Session::Init(proto::GraphDef& gdef) {
   ModelParser::CreateModelWeightSchema(executor_->GetGraph(), model_weight_schema_);
   LOG(INFO) << "schema_map.size: " << model_weight_schema_.size();
 
+  // interaction by ps
+  ps_interactor_ = std::make_shared<PsInteractor>(gdef.name());
+  if (ps_interactor_ == nullptr) {
+    LOG(ERROR) << "create ps interactor failed. graph name:" << gdef.name();
+    return -1;
+  }
+  std::vector<std::string> hosts;
+  hosts.push_back("localhost");
+  std::vector<int> ports;
+  ports.push_back(4321);
+
+  if (ps_interactor_->Init(hosts, ports) != 0) {
+    LOG(INFO) << "ps interactor init failed. graph name:" << gdef.name();
+    return -1;
+  }
+
+  // create model in ps side
+  std::string graph_def;
+  gdef.SerializeToString(&graph_def);
+  std::string returned_name = ps_interactor_->Create(graph_def, true);
+  if (returned_name != gdef.name()) {
+    LOG(ERROR) << "graph name beween returned name and gdef name. "
+               << returned_name << " vs " << gdef.name();
+    return -1;
+  }
+
+  LOG(INFO) << __FUNCTION__ << ". session init success. graph name: " << gdef.name();
   return 0;
 }
 
@@ -60,11 +92,13 @@ int Session::ParseGraphSourceNode() {
         label_node_.push_back(node_name);
       }
       if (node->node_info().node_scope == NS_FORWARD && !is_label) {
-        forward_nn_variable_.push_back(node_name);
-        reverse_nn_variable_.push_back(related_node_name);
         int node_id = 0;
         GetAttr(node->attrs(), "node_id", &node_id, false);
         CHECK(node_id < 0) << "attr 'node_id' should be less 0. node_name:" << node_name;
+
+        openmi::engine::NNVariableInfo nn_variable(node_name, related_node_name, node_id);
+        nn_variables_.push_back(nn_variable);
+
         CHECK(node2tensor_.find(node_name) != node2tensor_.end());
         Tensor* tensor = node2tensor_[node_name];
         CHECK(tensor->IsInitialized()) << "graph weight has not initialized.";
@@ -74,7 +108,7 @@ int Session::ParseGraphSourceNode() {
           auto fid = NNFid(std::abs(node_id), row_idx);
           openmi::engine::NNEntry nn_entry(fid, node_id);
           nn_entrys_.push_back(nn_entry);
-          LOG(INFO) << "node_name:" << node_name << ", node_id:" << node_id << ", fid:" << fid; 
+          DLOG(INFO) << "node_name:" << node_name << ", node_id:" << node_id << ", fid:" << fid; 
         }
       }
       continue;
@@ -113,7 +147,7 @@ int Session::ParseGraphSourceNode() {
           weight_offset->set_weight_size(embedding_size);
 
           weight_schema->set_total_weight_size(weight_schema->total_weight_size() + embedding_size);
-          LOG(INFO) << "column node:\n" << column_node->DebugString();
+          DLOG(INFO) << "column node:\n" << column_node->DebugString();
         }
         break;
       case proto::X: 
@@ -123,18 +157,10 @@ int Session::ParseGraphSourceNode() {
         column_node->set_row_offset(node_name);
         break;
       default:
+        LOG(WARN) << "Unknown source node type: " << SourceNodeType_Name(source_node_type);
         break;
     }
   } // end for
-
-  size_t forward_nn_size = forward_nn_variable_.size();
-  size_t reverse_nn_size = reverse_nn_variable_.size();
-  if (forward_nn_size != reverse_nn_size) {
-    LOG(ERROR) << "size of variable between forward and reverse not match. "
-      << "forward nn variable size:" << forward_nn_size 
-      << ", reverse nn variable size:" << reverse_nn_size;
-    return -1; 
-  }
 
   if (CheckColumnNode() != 0) {
     LOG(INFO) << "column node from graph is illegal.";
@@ -181,7 +207,7 @@ int Session::Run(InstancesPtr& batch, bool is_training) {
   LOG(INFO) << "feed column node time: " << time.Elapsed();
 
   executor_->Run();
-  LOG(INFO) << "exec forward&&backward time: " << time.Elapsed();
+  LOG(INFO) << "compute forward&&backward phase time: " << time.Elapsed();
 
   if (is_training) {
     if (GetGradient() != 0) {
@@ -200,7 +226,7 @@ int Session::Run(InstancesPtr& batch, bool is_training) {
 }
 
 int Session::Pull() {
-  ps_accessor_.ClearPull();
+  ps_interactor_->ClearPull();
   fid_set_.clear();
   // batch fids
   for (int i = 0; i < batch_->instance_size(); ++i) {
@@ -215,7 +241,7 @@ int Session::Pull() {
         continue;
       }
       fid_set_.insert(fid);
-      ps_accessor_.AddPullFid(fid, colid);
+      ps_interactor_->AddPull(fid, colid);
     }
   }
 
@@ -230,18 +256,21 @@ int Session::Pull() {
 
   if (update_graph_cache_) {
     for (auto nn_entry: nn_entrys_) {
-      ps_accessor_.AddPullFid(nn_entry.fid, nn_entry.node_id);
+      ps_interactor_->AddPull(nn_entry.fid, nn_entry.node_id);
     }
   }
 
-  ps_accessor_.PreparePull();
-  ps_accessor_.Pull();
+  std::string value_type("WEIGHT");
+  std::string req_id("req_id_pull_00000");
+  ps_interactor_->Pull(value_type, req_id);
 
   return 0;
 }
 
 int Session::Push() {
-  // TODO
+  std::string value_type("GRADIENT");
+  std::string req_id("req_id_pull_00000");
+  ps_interactor_->Push(value_type, req_id);
   return 0;
 }
 
@@ -258,10 +287,9 @@ int Session::FeedSourceNode(bool is_training) {
   // feed nn node 
   if (update_graph_cache_) {
     // TODO parallel
-    for (auto idx = 0; idx < forward_nn_variable_.size(); ++idx) {
-      auto nn_node_name = forward_nn_variable_[idx];
-      if (FeedNNNode(idx, nn_node_name) != 0) {
-        LOG(ERROR) << "feed nn node failed. nn_node_name:" << nn_node_name;
+    for (auto idx = 0; idx < nn_variables_.size(); ++idx) {
+      if (FeedNNNode(nn_variables_[idx]) != 0) {
+        LOG(ERROR) << "feed nn node failed.";
         return -1;
       }
     }
@@ -316,7 +344,7 @@ int Session::FeedColumnNode(uint32_t colid) {
   if (!tensor->IsInitialized() || batch_size != tensor->shape().DimSize(0)) {
     std::string shape_str = std::to_string(batch_size);
     TensorShape shape(shape_str);
-    tensor->AllocateTensor(shape);
+    tensor->ReallocateTensor(shape);
   }
 
   // consider multi hot encoding
@@ -386,13 +414,13 @@ int Session::FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids) {
     std::string shape_str = std::to_string(fids->keys_size()) + "," + std::to_string(size);
     TensorShape shape(shape_str);
     if (!tensor->IsInitialized() || tensor->shape() != shape) {
-      tensor->AllocateTensor(shape);
+      tensor->AllocateTensor(shape); 
     }
 
     auto w = tensor->tensor<float, 2>();
     w.setZero();
 
-    auto& fid2paramdata = ps_accessor_.GetFid2ParamData();
+    auto& fid2paramdata = ps_interactor_->GetFid2ParamData();
     for (int i = 0; i < fids->keys_size(); ++i) {
       auto fid = fids->keys(i);
       if (fid == 0 || fid2paramdata.find(fid) == fid2paramdata.end()) {
@@ -406,7 +434,7 @@ int Session::FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids) {
         w(i, j) = val_list.val(offset + j);
       }
     }
-    DLOG(INFO) << "feed w node[" << node_name << "]:\n" << w;
+    LOG(INFO) << "feed w node[" << node_name << "]:\n" << w;
   }
   return 0;
 }
@@ -415,8 +443,11 @@ uint64_t Session::NNFid(int node_id, int row_idx) {
   return GetFid(node_id + 1, row_idx + 1);
 }
 
-int Session::FeedNNNode(int node_idx, std::string& node_name) {
-  auto model_param_data = ps_accessor_.GetFid2ParamData();
+int Session::FeedNNNode(engine::NNVariableInfo& nn_variable) {
+  auto node_name = nn_variable.node_name;
+  auto node_id = nn_variable.node_id;
+
+  auto model_param_data = ps_interactor_->GetFid2ParamData();
 
   if (node2tensor_.find(node_name) == node2tensor_.end()) {
     LOG(ERROR) << "nn node '" << node_name << "' not in session state.";
@@ -428,7 +459,7 @@ int Session::FeedNNNode(int node_idx, std::string& node_name) {
   auto second_dim_size = nn->shape().DimSize(1);
   // row index
   for (auto idx = 0; idx < first_dim_size; ++idx) {
-    uint64_t fid = NNFid(node_idx, idx);
+    uint64_t fid = NNFid(std::abs(node_id), idx);
     if (model_param_data.find(fid) != model_param_data.end()) {
       auto val_list = model_param_data[fid];
       CHECK(val_list.val_size() == (int)second_dim_size) << "nn cols size not match";
@@ -441,6 +472,7 @@ int Session::FeedNNNode(int node_idx, std::string& node_name) {
         nn->tensor<float, 2>()(idx, j) = val_list.val(j);
       }
     } else {
+      LOG(ERROR) << __FUNCTION__ << ". pull nn param is empty. fid:" << fid;
       // TODO 需要优化初始化方式
       for (int j = 0; j < second_dim_size; ++j) {
         //nn->tensor<float, 2>()(idx, j) = 0;
@@ -453,34 +485,29 @@ int Session::FeedNNNode(int node_idx, std::string& node_name) {
 }
 
 int Session::GetGradient() {
-  std::unordered_map<uint64_t, ValListPtr> fid2grad;
   // get column node gradient
   // TODO parallel
   for (auto i = 0; i < valid_columns_.size(); ++i) {
     auto colid = valid_columns_[i];
-    if (GetColumnGradient(colid, fid2grad) != 0) {
+    if (GetColumnGradient(colid) != 0) {
       LOG(ERROR) << "feed column node failed. column id:" << valid_columns_[i];
       return -1;
     }
   }
   // get nn node gradient
   // TODO parallel
-  for (auto idx = 0; idx < reverse_nn_variable_.size(); ++idx) {
-    auto nn_node_name = reverse_nn_variable_[idx];
-    if (GetNNGradient(idx, nn_node_name, fid2grad) != 0) {
-      LOG(ERROR) << "feed nn gradient failed. node_name:" << nn_node_name;
+  for (auto idx = 0; idx < nn_variables_.size(); ++idx) {
+    auto nn_variable = nn_variables_[idx];
+    if (GetNNGradient(nn_variable) != 0) {
+      LOG(ERROR) << "feed nn gradient failed. node_name:" << nn_variable.reversed_node_name;
       return -1;
     }
   }
-
-  // TODO prepare push
-  // fid2grad -> proto::internal::ModelParamData
-
-  fid2grad.clear();
   return 0;
 }
 
-int Session::GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPtr>& fid2grad) {
+int Session::GetColumnGradient(int colid) {
+  std::unordered_map<uint64_t, std::vector<float>> fid2grad;
   auto column_key_index = column2keyindex_.at(colid);
   auto column_node = column2node_[colid];
   auto total_weight_size = column_node->weight_schema().total_weight_size();
@@ -502,12 +529,11 @@ int Session::GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPt
     for (int row_idx = 0; row_idx < row_size; ++row_idx) {
       auto fid = column_key_index->keys(row_idx);
       
-      ValListPtr grad_list;
+      std::vector<float> grad_list;
       if (fid2grad.find(fid) != fid2grad.end()) {
         grad_list = fid2grad[fid];
       } else {
-        grad_list = std::make_shared<proto::comm::ValueList>();
-        grad_list->mutable_val()->Resize(total_weight_size, 0);
+        grad_list.resize(total_weight_size);
         fid2grad.insert({fid, grad_list});
       }
 
@@ -517,42 +543,43 @@ int Session::GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPt
       }
       
       for (int j = 0; j < size; ++j) {
-        auto offset1 = offset + j;
-        grad_list->set_val(offset1, grad_list->val(offset1) + grad(row_idx, j));
+        grad_list[offset + j] += grad(row_idx, j);
       }
     } // row index
   } // multi weight node
-  LOG(INFO) << "done";
+
+  for (auto it = fid2grad.begin(); it != fid2grad.end(); it++) {
+    auto key = it->first;
+    auto value = it->second;
+    ps_interactor_->AddPush(key, colid, value);
+  }
+
+  fid2grad.clear();
+
+  LOG(INFO) << __FUNCTION__ << " done";
   return 0;
 }
 
-int Session::GetNNGradient(int idx, std::string& node_name, std::unordered_map<uint64_t, ValListPtr>& fid2grad) {
-  LOG(INFO) << "reversed nn:" << node_name;
-  CHECK(node2tensor_.find(node_name) != node2tensor_.end());
+int Session::GetNNGradient(engine::NNVariableInfo& nn_variable) {
+  auto reversed_node_name = nn_variable.reversed_node_name;
+  LOG(INFO) << "reversed nn:" << reversed_node_name;
+  CHECK(node2tensor_.find(reversed_node_name) != node2tensor_.end());
   
-  auto* nn = node2tensor_[node_name];
+  auto* nn = node2tensor_[reversed_node_name];
   auto grad = nn->tensor<float, 2>();
 
-  LOG(INFO) << ", nn_grad_tensor:\n" << grad;
+  LOG(INFO) << "nn_grad_tensor:\n" << grad;
   // by first dim (default by row splitted)
   auto dim_1st = nn->shape().DimSize(0);
   auto dim_2nd = nn->shape().DimSize(1);
+  std::vector<float> grads(dim_2nd);
   for (int row_idx = 0; row_idx < dim_1st; ++row_idx) {
-    auto fid = NNFid(idx, row_idx);
-
-    ValListPtr grad_list;
-    if (fid2grad.find(fid) != fid2grad.end()) {
-      grad_list = fid2grad[fid];
-    } else {
-      grad_list = std::make_shared<proto::comm::ValueList>();
-      grad_list->mutable_val()->Resize(dim_2nd, 0);
-      fid2grad.insert({fid, grad_list});
-    }
-
-    // 优化性能
+    auto fid = NNFid(std::abs(nn_variable.node_id), row_idx);
     for (int j = 0; j < dim_2nd; ++j) {
-      grad_list->set_val(j, grad_list->val(j) + grad(row_idx, j));
+      grads[j] += grad(row_idx, j);
     }
+    ps_interactor_->AddPush(fid, nn_variable.node_id, grads);
+    grads.clear();
   }
 
   return 0;

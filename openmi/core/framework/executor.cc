@@ -13,20 +13,16 @@ bool is_training = true;
 namespace openmi {
 
 Executor::Executor(proto::GraphDef& gdef) 
-  : g_(nullptr),
-    gradients_(nullptr),
-    session_state_(nullptr) {
-  Init(gdef);
+  : gdef_(gdef), g_(nullptr), gradients_(nullptr), session_state_(nullptr) {
 }
 
 Executor::~Executor() {
   Destroy();
 }
 
-void Executor::Init(proto::GraphDef& gdef) {
-  gdef_ = gdef;
+int Executor::Init() {
   g_ = std::make_shared<Graph>();
-  Status status = ConvertGraphDefToGraph(&gdef, g_.get());
+  Status status = ConvertGraphDefToGraph(&gdef_, g_.get());
   // only forward node
   FindSourceNodes(g_.get(), g_->source_nodes());
   FindSinkNodes(g_.get(), g_->sink_nodes());
@@ -59,7 +55,9 @@ void Executor::Init(proto::GraphDef& gdef) {
             << "], sink nodes size[" << g_->sink_nodes().size()
             << "], forward nodes size[" << g_->forward_topo_nodes().size()
             << "], backward nodes size[" << g_->reversed_nodes().size() << "]";
-  LOG(INFO) << "Executor init successfully.";
+
+  LOG(INFO) << "executor init success.";
+  return 0;
 }
 
 void Executor::Destroy() {

@@ -9,7 +9,7 @@
 #include "openmi/idl/proto/instance.pb.h"
 #include "openmi/core/framework/executor.h"
 #include "openmi/core/engine/nn_structure.h"
-#include "openmi/core/engine/ps_accessor.h"
+#include "openmi/core/engine/ps_interactor.h"
 
 using namespace openmi;
 
@@ -30,6 +30,7 @@ public:
   ~Session();
 
   int Init(proto::GraphDef& gdef);
+  
   void Destroy();
   
   ExecutorPtr GetExecutor() {
@@ -50,20 +51,20 @@ private:
   
   // for sparse feature data 
   int FeedColumnNode(uint32_t colid);
-  int FeedNNNode(int node_idx, std::string& node_name);
+  int FeedNNNode(engine::NNVariableInfo& nn_variable);
   int FeedLabelNode();
 
   int FeedXNode(ColumnNodePtr& column_node, std::vector<float>& values);
   int FeedWNode(ColumnNodePtr& column_node, ColumnKeyIndexPtr& fids);
 
-  int GetColumnGradient(int colid, std::unordered_map<uint64_t, ValListPtr>& fid2grad);
-  int GetNNGradient(int idx, std::string& node_name, std::unordered_map<uint64_t, ValListPtr>& fid2grad);
+  int GetColumnGradient(int colid);
+  int GetNNGradient(engine::NNVariableInfo& nn_variable);
 
   uint64_t NNFid(int node_id, int row_idx);
 
 private:
   ExecutorPtr executor_;
-  PsAccessor ps_accessor_;
+  PsInteractorPtr ps_interactor_;
   InstancesPtr batch_;
   std::unordered_set<uint64_t> fid_set_;
   std::vector<openmi::engine::NNEntry> nn_entrys_;
@@ -76,8 +77,7 @@ private:
   std::unordered_map<int, ModelWeightSchemaPtr> model_weight_schema_;
 
   //std::array<proto::internal::ColumnKeyIndexList*, 1000> column_key_indexes_;
-  std::vector<std::string> forward_nn_variable_;
-  std::vector<std::string> reverse_nn_variable_;
+  std::vector<openmi::engine::NNVariableInfo> nn_variables_;
   std::vector<std::string> label_node_;
 
   bool update_graph_cache_ = true;
